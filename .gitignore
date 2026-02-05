@@ -1,0 +1,87 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+
+# -------------------------
+# Django
+# -------------------------
+*.sqlite3
+db.sqlite3
+/media/
+staticfiles/
+
+# Django secret / environment
+.env
+.env.*
+*.env
+
+# Migration cache
+*/migrations/__pycache__/
+
+# -------------------------
+# AI / Model Files
+# -------------------------
+*.h5
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# -------------------------
+# IDE / Editor
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -------------------------
+# OS Files
+# -------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -------------------------
+# Node (if ever used)
+# -------------------------
+node_modules/
+
+# -------------------------
+# Temporary / cache
+# -------------------------
+.cache/
+pytest_cache/
+.mypy_cache/
+
+# -------------------------
+# Coverage / testing
+# -------------------------
+.coverage
+htmlcov/
+
+# -------------------------
+# Secrets
+# -------------------------
+*.pem
+*.key
+secrets.json
+credentials.json

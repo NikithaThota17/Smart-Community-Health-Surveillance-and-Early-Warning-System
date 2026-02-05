@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard | HealthGuard{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #F8FAFC; overflow-x: hidden; }
+        .sidebar { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 280px; }
+        .sidebar.collapsed { width: 88px; }
+        .sidebar.collapsed .nav-text, 
+        .sidebar.collapsed .sidebar-header-text, 
+        .sidebar.collapsed .role-badge-sidebar { display: none; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 12px 0; margin-left: 0; margin-right: 0; }
+        .main-content { transition: margin-left 0.3s ease; }
+        
+        .btn-teal-glow { 
+            background: #0F766E; 
+            box-shadow: 0 4px 14px rgba(15, 118, 110, 0.3); 
+            transition: all 0.3s ease; 
+        }
+        .btn-teal-glow:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(34, 211, 238, 0.4); 
+            background: #0D9488;
+        }
+
+        .nav-item-active {
+            background-color: rgba(15, 118, 110, 0.08);
+            color: #0F766E !important;
+            border-right: 4px solid #0F766E;
+        }
+
+        /* Smooth scrollbar for sidebar */
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="flex min-h-screen">
+
+    <aside id="sidebar" class="sidebar bg-white border-r border-slate-100 flex flex-col sticky top-0 h-screen z-50">
+        <div class="p-6 flex items-center justify-between border-b border-slate-50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-[#0F766E] rounded-xl flex items-center justify-center text-white shadow-lg shadow-[#0F766E]/20">
+                    <i class="fa-solid fa-shield-heart text-xl"></i>
+                </div>
+                <span class="sidebar-header-text font-black text-[#0F766E] text-xl tracking-tight">HealthGuard</span>
+            </div>
+            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-[#0F766E] transition-colors p-2">
+                <i class="fa-solid fa-bars-staggered"></i>
+            </button>
+        </div>
+
+        <div class="flex-1 p-4 space-y-2 sidebar-scroll overflow-y-auto">
+            
+            <p class="sidebar-header-text text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-4 mt-4 mb-2">Surveillance Hub</p>
+            
+            {% if user.role == 'admin' or user.is_staff %}
+                <a href="{% url 'accounts:admin_dashboard' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all {% if 'admin_dashboard' in request.path %}nav-item-active{% else %}text-slate-500 hover:bg-slate-50{% endif %}">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                    <span class="nav-text font-bold text-sm">Admin Dashboard</span>
+                </a>
+            {% elif user.role == 'health_worker' %}
+                <a href="{% url 'accounts:health_worker_dashboard' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all {% if 'health_worker_dashboard' in request.path %}nav-item-active{% else %}text-slate-500 hover:bg-slate-50{% endif %}">
+                    <i class="fa-solid fa-house-medical w-5 text-center"></i>
+                    <span class="nav-text font-bold text-sm">Community Hub</span>
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:user_dashboard' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all {% if request.resolver_match.url_name == 'user_dashboard' %}nav-item-active{% else %}text-slate-500 hover:bg-slate-50{% endif %}">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                    <span class="nav-text font-bold text-sm">Personal Dashboard</span>
+                </a>
+            {% endif %}
+
+            {% if user.role == 'citizen' %}
+            <a href="{% url 'complaints:submit_complaint' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fa-solid fa-notes-medical w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">Report Symptoms</span>
+            </a>
+            {% elif user.role == 'health_worker' %}
+            <a href="{% url 'complaints:health_worker_report' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">Submit Field Report</span>
+            </a>
+            {% endif %}
+
+            <a href="{% url 'complaints:my_submissions' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-500 hover:bg-slate-50 transition-all">
+                <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">History Logs</span>
+            </a>
+
+            {% if user.role == 'admin' or user.is_staff %}
+            <p class="sidebar-header-text text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-4 mt-8 mb-2">Management</p>
+            
+            <a href="{% url 'analytics:export_complaints_csv' %}" class="nav-item flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:bg-green-50 hover:text-green-600 transition-all">
+                <i class="fa-solid fa-file-csv w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">Export Data (CSV)</span>
+            </a>
+
+            <a href="{% url 'analytics:export_risk_pdf' %}" class="nav-item flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all">
+                <i class="fa-solid fa-file-pdf w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">Risk Report (PDF)</span>
+            </a>
+
+            <form action="{% url 'analytics:trigger_analysis' %}" method="POST" class="px-2 mt-4">
+                {% csrf_token %}
+                <button type="submit" class="w-full text-[10px] font-black uppercase bg-slate-900 text-white py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-all">
+                    <i class="fa-solid fa-bolt"></i> <span class="nav-text">Recalculate ML Risk</span>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="p-4 border-t border-slate-50">
+            <a href="{% url 'accounts:profile' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-500 hover:bg-slate-50 transition-all mb-2">
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[#0F766E] font-bold text-xs uppercase">
+                    {{ user.email|slice:":1" }}
+                </div>
+                <span class="nav-text font-bold text-sm">My Profile</span>
+            </a>
+            <a href="{% url 'accounts:logout' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl text-red-500 hover:bg-red-50 transition-all group">
+                <i class="fa-solid fa-power-off w-5 text-center group-hover:scale-110 transition-transform"></i>
+                <span class="nav-text font-bold text-sm uppercase tracking-widest">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 bg-[#F8FAFC]">
+        <header class="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40">
+            <div class="flex items-center gap-4">
+                <div class="h-8 w-1 bg-[#0F766E] rounded-full hidden md:block"></div>
+                <h2 class="font-semibold text-slate-800 tracking-tight">
+                    Welcome, <span class="text-[#0F766E] font-black">{{ user.get_full_name|default:user.email }}</span>
+                </h2>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                {% if user.village %}
+                <div class="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+                    <i class="fa-solid fa-location-dot text-[#22D3EE] text-xs"></i>
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">{{ user.village.name }}</span>
+                </div>
+                {% endif %}
+
+                <span class="px-4 py-1.5 bg-[#0F766E]/5 text-[#0F766E] text-[10px] font-black uppercase rounded-full border border-[#0F766E]/10 tracking-widest">
+                    {{ user.get_role_display }}
+                </span>
+            </div>
+        </header>
+
+        <div class="p-8">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="mb-6 p-4 rounded-2xl flex items-center gap-3 {% if message.tags == 'error' %}bg-red-50 text-red-600 border border-red-100{% else %}bg-green-50 text-green-600 border border-green-100{% endif %} animate-bounce shadow-sm">
+                    <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                    <p class="text-xs font-bold uppercase tracking-widest">{{ message }}</p>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block dashboard_content %}{% endblock %}
+        </div>
+
+        <footer class="mt-auto p-8 text-center border-t border-slate-100">
+            <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                HealthGuard © 2026 • Area Surveillance System
+            </p>
+        </footer>
+    </main>
+
+    <script>
+        // SIDEBAR TOGGLE LOGIC
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            sb.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sb.classList.contains('collapsed'));
+        }
+        
+        // Preserve state on reload
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+    </script>
+</body>
+</html>

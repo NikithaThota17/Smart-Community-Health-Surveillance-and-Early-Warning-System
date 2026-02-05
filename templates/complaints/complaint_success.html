@@ -1,0 +1,56 @@
+{% extends 'base2.html' %}
+{% block title %}Report Received | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-2xl mx-auto py-12 fade-in-up">
+    <div class="bg-white p-12 rounded-[3.5rem] shadow-2xl border border-slate-100 text-center relative overflow-hidden">
+        <div class="relative z-10">
+            <div class="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+                <i class="fa-solid fa-circle-check text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-black text-slate-900 mb-4 tracking-tight">REPORT <span class="text-[#0F766E]">SECURED</span></h1>
+            <p class="text-slate-500 mb-6 leading-relaxed">Your data has been queued for ML analysis. Based on your inputs, here is some AI-suggested protocol.</p>
+
+            {% if complaint.report_image %}
+            <div class="mb-10">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Evidence Received</p>
+                <div class="inline-block p-2 bg-slate-50 rounded-[2rem] border border-slate-100">
+                    <img src="{{ complaint.report_image.url }}" class="rounded-[1.5rem] shadow-sm max-w-xs h-48 object-cover mx-auto border-2 border-white">
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="bg-[#0F766E] text-white p-8 rounded-[2.5rem] text-left mb-10 shadow-xl">
+                <div class="flex items-center gap-3 mb-6">
+                    <i class="fa-solid fa-wand-magic-sparkles text-[#22D3EE]"></i>
+                    <h3 class="font-bold uppercase tracking-widest text-xs">Gemini AI Guidance</h3>
+                </div>
+                <div class="text-sm leading-loose whitespace-pre-line opacity-90 font-medium">
+                    {{ ai_advice|linebreaks }}
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4">
+    {% if user.role == 'health_worker' %}
+        <a href="{% url 'accounts:health_worker_dashboard' %}" class="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:bg-slate-800 transition-all">
+            Return to Community Hub
+        </a>
+    {% elif user.role == 'admin' %}
+        <a href="{% url 'accounts:admin_dashboard' %}" class="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:bg-slate-800 transition-all">
+            Return to Admin Panel
+        </a>
+    {% else %}
+        <a href="{% url 'accounts:user_dashboard' %}" class="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:bg-slate-800 transition-all">
+            Return to Dashboard
+        </a>
+    {% endif %}
+
+    <a href="{% url 'complaints:my_submissions' %}" class="text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-[#0F766E] transition-colors">
+        View My History
+    </a>
+</div>
+        </div>
+        <i class="fa-solid fa-shield-virus absolute -right-10 -bottom-10 text-[200px] text-[#0F766E]/5 rotate-12"></i>
+    </div>
+</div>
+{% endblock %}

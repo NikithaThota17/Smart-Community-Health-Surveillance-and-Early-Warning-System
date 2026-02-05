@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surveillance_Report_{{ report_date|date:"Ymd_Hi" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f1f5f9; color: #0F172A; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* THE A4 PRINT ENGINE - CRITICAL FOR AUTO-RESIZE */
+        @media print {
+            @page { 
+                size: A4 vertical; 
+                margin: 0mm; /* Browser handles margins via content padding */
+            }
+            body { background-color: #ffffff !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            
+            /* Force the main container to exactly A4 width */
+            .print-container { 
+                width: 210mm !important; 
+                min-height: 297mm;
+                padding: 15mm !important;
+                margin: 0 auto !important;
+                border: none !important;
+                box-shadow: none !important;
+                background: white !important;
+            }
+            
+            /* High-fidelity color printing */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .bg-teal-gradient { background: #0F766E !important; }
+            .bg-slate-900 { background: #0f172a !important; color: white !important; }
+        }
+
+        /* Screen-only styling for preview */
+        .print-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.05);
+        }
+
+        .text-teal { color: #0F766E; }
+        .bg-teal-gradient { background: linear-gradient(135deg, #0F766E 0%, #0D9488 100%); }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 8rem; opacity: 0.02; font-weight: 900; z-index: -1; pointer-events: none; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="watermark">OFFICIAL REPORT</div>
+
+    <div class="print-container">
+        <div class="flex justify-between items-end border-b-4 border-[#0F766E] pb-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-teal-gradient rounded-xl flex items-center justify-center text-white">
+                        <i class="fa-solid fa-shield-heart text-2xl"></i>
+                    </div>
+                    <h1 class="text-4xl font-black tracking-tighter text-teal leading-none">Health<span class="text-slate-300">Guard</span></h1>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Doc Class: RESTRICTED REPORT</p>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Serial: HG-SURV-{{ report_date|date:"is" }}</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <h2 class="text-lg font-extrabold text-slate-800 uppercase tracking-tight">Risk Assessment Log</h2>
+                <p class="text-[10px] text-slate-500 font-bold">{{ report_date|date:"F d, Y | H:i" }} IST</p>
+                <div class="mt-2 text-slate-200"><i class="fa-solid fa-qrcode text-3xl"></i></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-10">
+            <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Villages</p>
+                <h3 class="text-2xl font-black text-slate-900">{{ risks.count }} Nodes</h3>
+            </div>
+            <div class="p-5 bg-red-50 rounded-2xl border border-red-100">
+                <p class="text-[9px] font-black text-red-400 uppercase tracking-widest mb-1">Status</p>
+                <h3 class="text-2xl font-black text-red-600">Active</h3>
+            </div>
+            <div class="p-5 bg-slate-900 rounded-2xl text-white">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Engine</p>
+                <h3 class="text-2xl font-black italic">Verified</h3>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-sm mb-10">
+            <table class="w-full text-left">
+                <thead class="bg-teal-gradient text-white">
+                    <tr>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">Village Node</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">ML Probability</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">Risk Status</th>
+                        <th class="p-4 text-[10px] font-black uppercase tracking-widest">Reports</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for risk in risks %}
+                    <tr class="{% if risk.risk_level == 'high' %}bg-red-50/50{% endif %}">
+                        <td class="p-4">
+                            <p class="font-bold text-slate-800 text-sm leading-tight">{{ risk.village.name }}</p>
+                            <p class="text-[8px] text-slate-400 uppercase font-bold tracking-tighter">{{ risk.village.mandal.name }} Cluster</p>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <span class="mono text-sm font-bold text-slate-700">{{ risk.probability_score|floatformat:2 }}</span>
+                                <div class="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="bg-teal h-full" style="width: {% widthratio risk.probability_score 1 100 %}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border
+                                {% if risk.risk_level == 'high' %}bg-red-600 text-white border-red-700
+                                {% elif risk.risk_level == 'medium' %}bg-amber-100 text-amber-700 border-amber-200
+                                {% else %}bg-green-100 text-green-700 border-green-200{% endif %}">
+                                {{ risk.get_risk_level_display }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-xs font-bold text-slate-700">{{ risk.total_complaints }} Active</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </tbody>
+            </table>
+        </div>
+
+        <div class="grid grid-cols-2 gap-10 pt-8 border-t border-slate-100">
+            <div>
+                <h4 class="text-[9px] font-black text-slate-900 uppercase tracking-widest mb-1">Methodology</h4>
+                <p class="text-[8px] text-slate-400 leading-relaxed">Multi-factor Logistic Regression analysis on symptom frequency and sanitation scores. [cite: 172-179]</p>
+            </div>
+            <div class="text-right">
+                <h4 class="text-[9px] font-black text-slate-900 uppercase tracking-widest mb-1">Notice</h4>
+                <p class="text-[8px] text-slate-400 leading-relaxed uppercase">CONFIDENTIAL: AUTHORITY ACCESS ONLY</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-10 text-center no-print pb-20">
+        <button onclick="window.print()" class="bg-[#0F172A] text-white px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] hover:scale-105 transition-all shadow-xl">
+            <i class="fa-solid fa-file-pdf mr-2"></i> Save Official PDF
+        </button>
+        <p class="text-[10px] text-slate-400 mt-4 font-bold tracking-widest">Automatic A4 Scaling Enabled</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{% extends 'base2.html' %}
+{% block title %}Profile Settings | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto fade-in-up">
+    <div class="mb-10">
+        <h1 class="text-3xl font-bold text-slate-900">Account <span class="text-[#0F766E]">Profile</span></h1>
+        <p class="text-slate-500">Manage your personal information and security settings.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="space-y-6">
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 text-center">
+                <div class="w-24 h-24 bg-[#0F766E] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+                    {{ user.email|first|upper }}
+                </div>
+                <h3 class="font-bold text-slate-800">{{ user.get_full_name|default:user.email }}</h3>
+                <span class="inline-block mt-2 px-4 py-1 bg-[#22D3EE]/10 text-[#0F766E] text-[10px] font-black uppercase rounded-full tracking-widest">
+                    {{ user.get_role_display }} 
+                </span>
+                <hr class="my-6 border-slate-50">
+                <div class="text-left space-y-3">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Account Status</p>
+                    <div class="flex items-center gap-2 text-xs font-bold {% if user.is_verified %}text-green-500{% else %}text-amber-500{% endif %}">
+                        <i class="fa-solid fa-circle-check"></i> {% if user.is_verified %}VERIFIED{% else %}PENDING{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                    {{ form.email }}
+                </div>
+
+                <div class="pt-6 flex items-center justify-between border-t border-slate-50">
+                    <a href="{% url 'accounts:password_reset' %}" class="text-xs font-bold text-[#22D3EE] hover:underline uppercase tracking-widest">
+                        Change Password?
+                    </a>
+                    <button type="submit" class="btn-teal-glow bg-[#0F766E] text-white px-10 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg">
+                        Update Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

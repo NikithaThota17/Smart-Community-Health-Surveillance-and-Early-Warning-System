@@ -1,0 +1,83 @@
+{% extends 'base2.html' %}
+{% block title %}Health Worker Dashboard | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-6xl mx-auto fade-in-up">
+    <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Community <span class="text-[#0F766E]">Surveillance</span></h1>
+            <p class="text-slate-500 mt-1">Monitoring status for <b>{{ village_name }}</b> node.</p>
+        </div>
+        <a href="{% url 'complaints:health_worker_report' %}" class="btn-teal-glow text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3">
+            <i class="fa-solid fa-file-signature"></i> New Field Report
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+            <div class="relative z-10">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Area Reports</p>
+                <h3 class="text-4xl font-black text-slate-900">{{ total_area_reports }}</h3>
+            </div>
+            <i class="fa-solid fa-users-viewfinder absolute -right-4 -bottom-4 text-7xl text-slate-50 opacity-50 group-hover:text-[#0F766E]/10 transition-colors"></i>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+            <div class="relative z-10">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Affected Individuals</p>
+                <h3 class="text-4xl font-black text-red-500">{{ total_affected }}</h3>
+            </div>
+            <i class="fa-solid fa-hospital-user absolute -right-4 -bottom-4 text-7xl text-slate-50 opacity-50 group-hover:text-red-500/10 transition-colors"></i>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all">
+            <div class="relative z-10">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trend Indicator</p>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-4xl font-black text-slate-900">{{ trend }}</h3>
+                    {% if trend == "Rising" %}
+                        <i class="fa-solid fa-arrow-trend-up text-red-500 text-2xl"></i>
+                    {% else %}
+                        <i class="fa-solid fa-chart-line text-green-500 text-2xl"></i>
+                    {% endif %}
+                </div>
+            </div>
+            <i class="fa-solid fa-gauge-high absolute -right-4 -bottom-4 text-7xl text-slate-50 opacity-50 group-hover:text-[#22D3EE]/10 transition-colors"></i>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-8 border-b border-slate-50 flex items-center justify-between">
+            <h3 class="font-bold text-slate-800">Recent Field Reports</h3>
+            <a href="{% url 'complaints:my_submissions' %}" class="text-[10px] font-black text-[#0F766E] uppercase tracking-widest hover:underline">View All History</a>
+        </div>
+        <table class="w-full text-left">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                    <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Affected Count</th>
+                    <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Sanitation Level</th>
+                    <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for report in recent_reports %}
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="p-6">
+                        <p class="font-bold text-slate-700 text-sm">{{ report.created_at|date:"M d, Y" }}</p>
+                        <p class="text-[9px] text-slate-400 uppercase font-medium">{{ report.created_at|time:"H:i" }}</p>
+                    </td>
+                    <td class="p-6 font-bold text-slate-800">{{ report.affected_count }}</td>
+                    <td class="p-6 uppercase text-[10px] font-bold text-slate-500">{{ report.mosquito_severity }}</td>
+                    <td class="p-6">
+                        <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[9px] font-black uppercase tracking-widest">Submitted</span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="p-10 text-center text-slate-400">No reports found for this area.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

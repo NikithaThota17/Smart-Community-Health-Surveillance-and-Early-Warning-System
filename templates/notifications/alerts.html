@@ -1,0 +1,43 @@
+{% extends 'base2.html' %}
+{% block title %}Active Health Alerts | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-5xl mx-auto fade-in-up">
+    <div class="mb-10">
+        <h1 class="text-3xl font-bold text-slate-900">Health <span class="text-[#EF4444]">Alerts</span></h1>
+        <p class="text-slate-500">Real-time monitoring of community health emergencies.</p>
+    </div>
+
+    <div class="space-y-6">
+        {% for alert in alerts %}
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-l-8 {% if alert.risk_record.risk_level == 'high' %}border-l-red-500{% else %}border-l-amber-500{% endif %} flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="w-14 h-14 {% if alert.risk_record.risk_level == 'high' %}bg-red-50 text-red-500{% else %}bg-amber-50 text-amber-500{% endif %} rounded-2xl flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg">{{ alert.village.name }}</h3>
+                    <p class="text-slate-500 text-sm">{{ alert.message }}</p>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 block">{{ alert.created_at|timesince }} ago</span>
+                </div>
+            </div>
+            
+            {% if user.role == 'admin' and not alert.is_resolved %}
+            <form action="{% url 'notifications:resolve_alert' alert.id %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all">
+                    Resolve
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="bg-white p-20 rounded-[3rem] text-center border border-slate-100 shadow-sm">
+            <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-4"></i>
+            <h3 class="text-xl font-bold text-slate-800">No Active Alerts</h3>
+            <p class="text-slate-500">Your community status is currently stable.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
