@@ -1,0 +1,38 @@
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from .views import (
+    login_view, logout_view, signup_view, 
+    verify_otp_view, admin_dashboard, user_dashboard, profile_view, health_worker_dashboard_view,
+    admin_risk_history
+)
+
+app_name = 'accounts'
+
+urlpatterns = [
+    # Authentication
+    path('login/', login_view, name='login'),
+    path('signup/', signup_view, name='signup'),
+    path('logout/', logout_view, name='logout'),
+    path('verify-otp/', verify_otp_view, name='verify_otp'),
+    path('profile/', profile_view, name='profile'),
+
+    # Password Management
+    path('password_reset/', 
+         auth_views.PasswordResetView.as_view(template_name='registration/password_reset_form.html'), 
+         name='password_reset'),
+    path('password_reset/done/', 
+         auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), 
+         name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), 
+         name='password_reset_confirm'),
+    path('reset/done/', 
+         auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), 
+         name='password_reset_complete'),
+
+    # Dashboards
+    path('dashboard/admin/', admin_dashboard, name='admin_dashboard'),
+    path('dashboard/admin/risk-history/', admin_risk_history, name='admin_risk_history'),
+    path('dashboard/user/', user_dashboard, name='user_dashboard'),
+    path('dashboard/health-worker/', health_worker_dashboard_view, name='health_worker_dashboard'),
+]
