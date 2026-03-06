@@ -1,0 +1,143 @@
+{% extends 'base1.html' %}
+{% load i18n %}
+{% block title %}Register | HealthGuard Early Warning{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center py-20 px-4 relative overflow-hidden">
+    <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-[#0F766E]/5 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#22D3EE]/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <div class="max-w-md w-full space-y-8 bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-slate-100 shadow-2xl fade-in-up">
+        
+        <div class="text-center">
+            <div class="w-20 h-20 bg-[#0F766E]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-[#0F766E]/20 transition-transform hover:scale-105">
+                <i class="fa-solid fa-user-plus text-3xl text-[#0F766E]"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-slate-900 tracking-tight">
+                Create <span class="text-[#22D3EE]">Account</span>
+            </h2>
+            <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
+                Join Surveillance Network
+            </p>
+        </div>
+
+        <form class="mt-8 space-y-5" method="POST" id="signupForm">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div class="relative group">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0F766E] transition-colors"></i>
+                    <input name="email" type="email" required placeholder="Valid Email Address"
+                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-[#0F766E]/50 focus:ring-2 focus:ring-[#0F766E]/10 outline-none font-medium text-slate-900 placeholder-slate-400 transition-all">
+                </div>
+                
+                <div class="relative group">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0F766E] transition-colors"></i>
+                    <input name="password" type="password" required placeholder="Security Password"
+                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-[#0F766E]/50 focus:ring-2 focus:ring-[#0F766E]/10 outline-none font-medium text-slate-900 placeholder-slate-400 transition-all">
+                </div>
+
+                <div class="relative group">
+                    <i class="fa-solid fa-user-tag absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0F766E] transition-colors z-10"></i>
+                    <select name="role" required
+                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-[#0F766E]/50 focus:ring-2 focus:ring-[#0F766E]/10 outline-none font-medium text-slate-900 appearance-none cursor-pointer transition-all">
+                        <option value="" disabled selected>Select Your Role</option>
+                        <option value="citizen">Citizen (Normal User)</option>
+                        <option value="health_worker">Health Worker (ASHA/Officer)</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 space-y-4">
+                <p class="text-[10px] font-black text-[#0F766E] uppercase tracking-widest ml-1">Assigned Surveillance Area</p>
+                
+                <div class="relative group">
+                    <select name="country" id="id_country" required class="w-full pl-6 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F766E]/50 outline-none font-medium text-sm text-slate-900 appearance-none cursor-pointer">
+                        <option value="">Select Country</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}">{{ country.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="relative group">
+                    <select name="state" id="id_state" required class="w-full pl-6 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F766E]/50 outline-none font-medium text-sm text-slate-900 appearance-none">
+                        <option value="">Select State</option>
+                    </select>
+                </div>
+
+                <div class="relative group">
+                    <select name="district" id="id_district" required class="w-full pl-6 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F766E]/50 outline-none font-medium text-sm text-slate-900 appearance-none">
+                        <option value="">Select District</option>
+                    </select>
+                </div>
+
+                <div class="relative group">
+                    <select name="mandal" id="id_mandal" required class="w-full pl-6 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F766E]/50 outline-none font-medium text-sm text-slate-900 appearance-none">
+                        <option value="">Select Mandal</option>
+                    </select>
+                </div>
+
+                <div class="relative group">
+                    <select name="village" id="id_village" required class="w-full pl-6 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#0F766E]/50 outline-none font-medium text-sm text-slate-900 appearance-none">
+                        <option value="">Select Village</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-[#22D3EE]/5 p-5 rounded-2xl border border-[#22D3EE]/20 flex items-start gap-4">
+                <i class="fa-solid fa-shield-halved text-[#22D3EE] mt-1"></i>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
+                    A secure 6-digit OTP will be transmitted to your email to verify your identity within the system.
+                </p>
+            </div>
+
+            <button type="submit"
+                class="btn-teal-glow w-full bg-[#0F766E] text-white font-bold py-4 rounded-2xl uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg">
+                <i class="fa-solid fa-fingerprint"></i> Create Your Account
+            </button>
+            
+            <div class="text-center pt-2">
+                <p class="text-xs text-slate-500 font-medium">
+                    Already a member? 
+                    <a href="{% url 'accounts:login' %}" class="text-[#0F766E] font-bold hover:text-[#22D3EE] transition-colors ms-1">Existing Session</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const country = document.getElementById("id_country");
+        const state = document.getElementById("id_state");
+        const district = document.getElementById("id_district");
+        const mandal = document.getElementById("id_mandal");
+        const village = document.getElementById("id_village");
+
+        // Helper function to populate dropdowns
+        function populate(trigger, target, urlBase, param, dependents) {
+            trigger.addEventListener("change", function() {
+                const url = `${urlBase}?${param}=${this.value}`;
+                fetch(url).then(res => res.json()).then(data => {
+                    target.innerHTML = `<option value="">Select ${target.name.charAt(0).toUpperCase() + target.name.slice(1)}</option>`;
+                    data.forEach(item => {
+                        target.innerHTML += `<option value="${item.id}">${item.label || item.name}</option>`;
+                    });
+                    // Reset all child dropdowns
+                    dependents.forEach(dep => {
+                        dep.innerHTML = `<option value="">Select ${dep.name.charAt(0).toUpperCase() + dep.name.slice(1)}</option>`;
+                    });
+                });
+            });
+        }
+
+        // Connect the chain
+        populate(country, state, "{% url 'locations:ajax_load_states' %}", "country_id", [district, mandal, village]);
+        populate(state, district, "{% url 'locations:ajax_load_districts' %}", "state_id", [mandal, village]);
+        populate(district, mandal, "{% url 'locations:ajax_load_mandals' %}", "district_id", [village]);
+        populate(mandal, village, "{% url 'locations:ajax_load_villages' %}", "mandal_id", []);
+    });
+</script>
+{% endblock %}

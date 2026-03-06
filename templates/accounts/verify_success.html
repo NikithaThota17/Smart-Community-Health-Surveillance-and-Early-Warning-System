@@ -1,0 +1,24 @@
+{% extends 'base1.html' %}
+{% block title %}Verification Successful | HealthGuard{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center py-32 px-4">
+    <div class="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl border border-slate-50 text-center fade-in-up">
+        <div class="relative mx-auto w-24 h-24 mb-8">
+            <div class="absolute inset-0 bg-[#22C55E]/20 rounded-full animate-ping"></div>
+            <div class="relative bg-[#22C55E] w-24 h-24 rounded-full flex items-center justify-center shadow-lg shadow-[#22C55E]/30">
+                <i class="fa-solid fa-check text-4xl text-white"></i>
+            </div>
+        </div>
+
+        <h2 class="text-3xl font-bold text-slate-900 mb-4">Account <span class="text-[#22C55E]">Verified</span></h2>
+        <p class="text-slate-500 mb-10 leading-relaxed">
+            Your identity has been confirmed. You are now a registered member of the HealthGuard Surveillance network.
+        </p>
+
+        <a href="{% url 'accounts:login' %}" class="btn-teal-glow inline-block w-full bg-[#0F766E] text-white font-bold py-4 rounded-2xl uppercase tracking-[0.2em] text-xs">
+            PROCEED TO LOGIN <i class="fa-solid fa-arrow-right ml-2"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}

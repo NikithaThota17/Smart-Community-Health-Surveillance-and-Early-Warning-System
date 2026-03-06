@@ -1,0 +1,74 @@
+{% extends 'base2.html' %}
+{% block title %}My Status | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto fade-in-up">
+    
+    <div class="mb-10">
+        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Personal <span class="text-[#0F766E]">Surveillance</span></h1>
+        <p class="text-slate-500 mt-1">Real-time health status for your assigned community.</p>
+    </div>
+
+    {% if risk %}
+    <div class="{% if risk.risk_level == 'high' %}bg-red-600{% elif risk.risk_level == 'medium' %}bg-amber-500{% else %}bg-green-600{% endif %} rounded-[3rem] p-12 text-white shadow-2xl mb-12 relative overflow-hidden transition-all hover:scale-[1.01]">
+        <div class="relative z-10">
+            <p class="text-xs font-black uppercase tracking-[0.4em] opacity-70 mb-3">Village: {{ user.village.name }}</p>
+            <h2 class="text-6xl font-black mb-6 uppercase tracking-tight">{{ risk.risk_level }} RISK</h2>
+            
+            <div class="flex items-center gap-6">
+                <div class="bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl">
+                    <p class="text-[10px] font-black uppercase opacity-80">Probability Score</p>
+                    <p class="text-2xl font-bold">{{ risk.probability_score }}</p>
+                </div>
+                <p class="text-sm text-white/90 max-w-xs leading-relaxed">
+                    Based on recent symptom counts and environmental indicators analyzed by the ML engine. [cite: 152]
+                </p>
+            </div>
+        </div>
+        <i class="fa-solid fa-shield-virus absolute -right-12 -bottom-12 text-[240px] opacity-10 rotate-12"></i>
+    </div>
+    {% else %}
+    <div class="bg-white border-2 border-dashed border-slate-100 rounded-[3rem] p-20 text-center mb-12 shadow-sm">
+        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fa-solid fa-hourglass-half text-2xl text-slate-300"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-800">Awaiting ML Analysis</h3>
+        <p class="text-sm text-slate-400 mt-2">The engine has not yet generated a risk score for <strong class="text-[#0F766E]">{{ user.village.name }}</strong>.</p>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 flex flex-col items-start transition-all hover:shadow-md">
+            <div class="w-14 h-14 bg-[#0F766E]/10 rounded-2xl flex items-center justify-center text-[#0F766E] mb-6">
+                <i class="fa-solid fa-circle-plus text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3">Report Symptoms</h3>
+            <p class="text-sm text-slate-500 leading-relaxed mb-8">Contribute to community safety by reporting symptoms or sanitation issues.</p>
+            <a href="{% url 'complaints:submit_complaint' %}" class="btn-teal-glow mt-auto text-white px-10 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest">
+                START REPORT <i class="fa-solid fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md">
+            <div class="w-14 h-14 bg-[#22D3EE]/10 rounded-2xl flex items-center justify-center text-[#22D3EE] mb-6">
+                <i class="fa-solid fa-lightbulb text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3">Safety Protocol</h3>
+            <ul class="space-y-4">
+                <li class="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                    <i class="fa-solid fa-circle-check text-green-500 mt-1"></i>
+                    Eliminate stagnant water.
+                </li>
+                <li class="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                    <i class="fa-solid fa-circle-check text-green-500 mt-1"></i>
+                    Use mosquito repellents.
+                </li>
+                <li class="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                    <i class="fa-solid fa-circle-check text-green-500 mt-1"></i>
+                    Ensure proper waste disposal.
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

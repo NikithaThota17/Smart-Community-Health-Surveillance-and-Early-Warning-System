@@ -1,0 +1,272 @@
+{% extends 'base2.html' %}
+{% block title %}Intelligence Command Center | HealthGuard{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
+    body { font-family: 'Outfit', sans-serif; letter-spacing: -0.02em; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Glassmorphism Cards  */
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .glass-card:hover {
+        transform: translateY(-10px) scale(1.01);
+        box-shadow: 0 30px 60px -12px rgba(15, 118, 110, 0.15);
+        border-color: rgba(15, 118, 110, 0.2);
+    }
+
+    /* Floating Icon Backgrounds */
+    .icon-float {
+        position: absolute;
+        right: -10px;
+        bottom: -15px;
+        font-size: 110px;
+        opacity: 0.04;
+        transform: rotate(15deg);
+        transition: all 0.6s ease;
+    }
+    .glass-card:hover .icon-float {
+        opacity: 0.1;
+        transform: rotate(0deg) scale(1.2);
+        color: #0F766E;
+    }
+
+    /* Advanced Text Gradients */
+    .text-gradient-teal {
+        background: linear-gradient(135deg, #0F766E 0%, #22D3EE 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Animated Risk Badges [cite: 55] */
+    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 300% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    .pulse-danger { animation: pulse-red 2s infinite; }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-[1600px] mx-auto fade-in-up">
+
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
+        <div>
+            <h1 class="text-5xl font-extrabold text-slate-900 tracking-tighter">
+                Surveillance <span class="text-gradient-teal underline decoration-[#22D3EE]/30">Intelligence</span>
+            </h1>
+            <p class="text-slate-500 mt-2 font-medium flex items-center gap-2">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span> 
+                Live System Status: <b class="text-slate-800">Operational</b> | Nodes Active: <b>{{ total_villages }}</b>
+            </p>
+        </div>
+        <div class="flex items-center gap-4">
+            <form action="{% url 'analytics:trigger_analysis' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="group bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:bg-black transition-all shadow-2xl">
+                    <i class="fa-solid fa-microchip group-hover:rotate-180 transition-transform duration-700"></i>
+                    Refresh ML Risk Engine
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-12">
+        <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden group border border-slate-300">
+            <i class="fa-solid fa-clipboard-list icon-float"></i>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Total Reports</p>
+            <h3 class="text-5xl font-extrabold text-slate-900 mb-4">{{ total_complaints }}</h3>
+            <div class="flex items-center gap-2 text-green-600 font-bold text-xs bg-green-50 w-fit px-3 py-1 rounded-full">
+                <i class="fa-solid fa-arrow-up-right-dots"></i> Surveillance Active
+            </div>
+        </div>
+
+        <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden group border border-slate-300">
+            <i class="fa-solid fa-users icon-float"></i>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">System Users</p>
+            <h3 class="text-5xl font-extrabold text-slate-900 mb-4">{{ total_users }}</h3>
+            <div class="flex items-center gap-2 text-[#0F766E] font-bold text-xs bg-[#0F766E]/5 w-fit px-3 py-1 rounded-full">
+                <i class="fa-solid fa-id-card"></i> Multi-Role Auth
+            </div>
+        </div>
+
+        <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden border-red-300 bg-red-50/20 group">
+            <i class="fa-solid fa-biohazard icon-float text-red-500"></i>
+            <p class="text-[11px] font-black text-red-400 uppercase tracking-[0.2em] mb-2">High Risk Zones</p>
+            <h3 class="text-5xl font-extrabold text-red-600 mb-4">{{ high_risk_count }}</h3>
+            <div class="flex items-center gap-2 text-red-600 font-bold text-xs bg-red-300 w-fit px-3 py-1 rounded-full pulse-danger">
+                <i class="fa-solid fa-triangle-exclamation"></i> Immediate Action
+            </div>
+        </div>
+
+        <div class="glass-card p-10 rounded-[3rem] relative overflow-hidden border-[#22D3EE]/30 bg-cyan-50/20 group">
+            <i class="fa-solid fa-satellite-dish icon-float text-[#22D3EE]"></i>
+            <p class="text-[11px] font-black text-[#0F766E] uppercase tracking-[0.2em] mb-2">Village Nodes</p>
+            <h3 class="text-5xl font-extrabold text-slate-900 mb-4">{{ total_villages }}</h3>
+            <div class="flex items-center gap-2 text-[#0F766E] font-bold text-xs bg-[#22D3EE]/10 w-fit px-3 py-1 rounded-full">
+                <i class="fa-solid fa-map-location-dot"></i> Geographic Reach
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
+        <div class="xl:col-span-2 glass-card p-12 rounded-[4rem] relative border border-slate-300">
+    <div class="flex justify-between items-center mb-10">
+        <h3 class="font-extrabold text-slate-800 uppercase text-xs tracking-[0.3em]">Node Sentiment: Area Trends</h3>
+    </div>
+    <div class="relative h-[350px] w-full">
+        <canvas id="barChart"></canvas>
+    </div>
+        </div>
+
+        <div class="glass-card p-12 rounded-[4rem] border border-slate-300">
+            <div class="text-center mb-8">
+                <h3 class="font-extrabold text-slate-800 uppercase text-xs tracking-[0.3em] mb-2">Risk Allocation</h3>
+            </div>
+            <div class="relative h-[350px] w-full">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card rounded-[4rem] overflow-hidden border-slate-300 mb-12">
+        <div class="p-12 border-b border-slate-300 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+                <h3 class="font-extrabold text-slate-900 text-xl tracking-tight">Active Warning <span class="text-red-500">Nodes</span></h3>
+                <p class="text-slate-400 text-xs font-medium mt-1 uppercase tracking-widest">ML Predicted Critical Areas</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'accounts:admin_risk_history' %}" class="bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> Full Risk Logs
+                </a>
+                <a href="{% url 'analytics:export_risk_pdf' %}" class="bg-red-50 text-red-600 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
+                    <i class="fa-solid fa-file-pdf mr-2"></i> Intelligence PDF
+                </a>
+                <a href="{% url 'analytics:export_complaints_csv' %}" class="bg-[#0F766E]/5 text-[#0F766E] px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#0F766E] hover:text-white transition-all">
+                    <i class="fa-solid fa-file-csv mr-2"></i> Raw CSV Data
+                </a>
+            </div>
+        </div>
+        <table class="w-full text-left">
+            <thead>
+                <tr class="bg-slate-50/50">
+                    <th class="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Village Node</th>
+                    <th class="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">ML Probability</th>
+                    <th class="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Temporal Log</th>
+                    <th class="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">surveillance</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300">
+                {% for risk in high_risk_villages %}
+                <tr class="group hover:bg-[#EF4444]/5 transition-all">
+                    <td class="p-8">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-red-300 shadow-sm group-hover:scale-110 transition">
+                                <i class="fa-solid fa-map-pin text-red-500"></i>
+                            </div>
+                            <div>
+                                <p class="font-extrabold text-slate-800 text-lg tracking-tight">{{ risk.village.name }}</p>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">{{ risk.village.mandal.district.name }} Center</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-8">
+                        <span class="mono text-xl font-bold text-red-600">{{ risk.probability_score|floatformat:2 }}%</span>
+                        <div class="w-24 h-1 bg-slate-300 rounded-full mt-2 overflow-hidden">
+                            <div class="bg-red-500 h-full" style="width: {{ risk.probability_score }}%"></div>
+                        </div>
+                    </td>
+                    <td class="p-8">
+                        <p class="font-bold text-slate-700">{{ risk.calculated_at|date:"M d" }}</p>
+                        <p class="mono text-[10px] text-slate-400 uppercase">{{ risk.calculated_at|time:"H:i:s" }} IST</p>
+                    </td>
+                    <td class="p-8">
+                        <div class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl w-fit font-black text-[9px] uppercase tracking-tighter">
+                            <span class="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></span>
+                            Action Required
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="p-32 text-center">
+                        <i class="fa-solid fa-circle-check text-6xl text-slate-300 mb-4 block"></i>
+                        <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">All nodes currently stable</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const chartConfig = {
+        font: { family: "'Outfit', sans-serif", weight: '600', size: 11 },
+        colors: { 
+            primary: '#0F766E', 
+            accent: '#22D3EE', 
+            danger: '#EF4444', 
+            warning: '#F59E0B', 
+            success: '#22C55E' 
+        }
+    };
+
+    // --- Node Sentiment: Area Trends (Bar Chart) ---
+    const ctxBar = document.getElementById('barChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: {{ bar_labels|safe }},
+            datasets: [{
+                label: 'Risk Probability (%)',
+                data: {{ bar_data|safe }},
+                backgroundColor: chartConfig.colors.primary,
+                borderRadius: 12,
+                hoverBackgroundColor: chartConfig.colors.accent
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 100, ticks: { font: chartConfig.font } },
+                x: { ticks: { font: chartConfig.font } }
+            }
+        }
+    });
+
+    // --- Risk Allocation (Pie Chart) ---
+    const ctxPie = document.getElementById('pieChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: {{ pie_labels|safe }},
+            datasets: [{
+                data: {{ pie_data|safe }},
+                backgroundColor: [chartConfig.colors.danger, chartConfig.colors.warning, chartConfig.colors.success],
+                borderWidth: 5,
+                borderColor: '#ffffff',
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            cutout: '80%',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, font: chartConfig.font, padding: 20 } }
+            }
+        }
+    });
+</script>
+{% endblock %}
