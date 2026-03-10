@@ -18,5 +18,13 @@ def load_mandals(request):
 
 def load_villages(request):
     mandal_id = request.GET.get('mandal_id')
-    villages = Village.objects.filter(mandal_id=mandal_id).values('id', 'name')
-    return JsonResponse(list(villages), safe=False)
+    villages = Village.objects.filter(mandal_id=mandal_id).select_related('mandal__district')
+    data = [
+        {
+            'id': village.id,
+            'name': village.name,
+            'label': f"{village.name} ({village.mandal.name}, {village.mandal.district.name})"
+        }
+        for village in villages
+    ]
+    return JsonResponse(data, safe=False)

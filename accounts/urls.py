@@ -2,7 +2,8 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import (
     login_view, logout_view, signup_view, 
-    verify_otp_view, admin_dashboard, user_dashboard, profile_view, health_worker_dashboard_view
+    verify_otp_view, admin_dashboard, user_dashboard, profile_view, health_worker_dashboard_view,
+    admin_risk_history
 )
 
 app_name = 'accounts'
@@ -31,6 +32,7 @@ urlpatterns = [
 
     # Dashboards
     path('dashboard/admin/', admin_dashboard, name='admin_dashboard'),
+    path('dashboard/admin/risk-history/', admin_risk_history, name='admin_risk_history'),
     path('dashboard/user/', user_dashboard, name='user_dashboard'),
     path('dashboard/health-worker/', health_worker_dashboard_view, name='health_worker_dashboard'),
 ]

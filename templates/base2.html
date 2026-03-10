@@ -95,6 +95,13 @@
             </a>
 
             {% if user.role == 'admin' or user.is_staff %}
+            <a href="{% url 'notifications:alert_list' %}" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all {% if request.resolver_match.url_name == 'alert_list' %}nav-item-active{% else %}text-slate-500 hover:bg-slate-50{% endif %}">
+                <i class="fa-solid fa-bell w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">Alerts</span>
+            </a>
+            {% endif %}
+
+            {% if user.role == 'admin' or user.is_staff %}
             <p class="sidebar-header-text text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-4 mt-8 mb-2">Management</p>
             
             <a href="{% url 'analytics:export_complaints_csv' %}" class="nav-item flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:bg-green-50 hover:text-green-600 transition-all">
@@ -105,6 +112,11 @@
             <a href="{% url 'analytics:export_risk_pdf' %}" class="nav-item flex items-center gap-4 px-4 py-3 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all">
                 <i class="fa-solid fa-file-pdf w-5 text-center"></i>
                 <span class="nav-text font-bold text-sm">Risk Report (PDF)</span>
+            </a>
+
+            <a href="{% url 'accounts:admin_risk_history' %}" class="nav-item flex items-center gap-4 px-4 py-3 rounded-xl transition-all {% if request.resolver_match.url_name == 'admin_risk_history' %}nav-item-active{% else %}text-slate-500 hover:bg-slate-50{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i>
+                <span class="nav-text font-bold text-sm">Risk History</span>
             </a>
 
             <form action="{% url 'analytics:trigger_analysis' %}" method="POST" class="px-2 mt-4">

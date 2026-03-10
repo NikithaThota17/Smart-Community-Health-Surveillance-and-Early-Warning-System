@@ -8,6 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 import random
 from django.db.models import Sum, Count
+from django.core.paginator import Paginator
+from django.db.models import OuterRef, Subquery
 from complaints.models import Complaint
 # App-specific imports
 from .models import EmailOTP
@@ -17,6 +19,17 @@ from complaints.models import Complaint
 from analytics.models import RiskRecord
 
 User = get_user_model()
+
+
+def _latest_risk_records_queryset():
+    """Return one latest RiskRecord per village."""
+    latest_record_id = RiskRecord.objects.filter(
+        village=OuterRef('village')
+    ).order_by('-calculated_at', '-id').values('id')[:1]
+
+    return RiskRecord.objects.filter(
+        id=Subquery(latest_record_id)
+    ).select_related('village__mandal__district')
 
 
 # =========================================================
@@ -153,24 +166,22 @@ def admin_dashboard(request):
         return redirect('accounts:user_dashboard')
 
     # 1. Summary Statistics [cite: 303-308]
+    latest_risks = _latest_risk_records_queryset()
+    top_risk_villages = latest_risks.order_by('-probability_score', '-calculated_at')[:10]
+
     context = {
         'total_complaints': Complaint.objects.count(),
         'total_users': User.objects.count(),
-        'high_risk_count': RiskRecord.objects.filter(risk_level='high').count(),
+        'high_risk_count': latest_risks.filter(risk_level='high').count(),
         'total_villages': Village.objects.filter(is_active=True).count(),
     }
 
-    # 2. Area-wise Trends (Bar Chart: Probabilities by Village) [cite: 311-314]
-    # We fetch the latest RiskRecord for each village to show current status
-    latest_risks = RiskRecord.objects.all().select_related('village').order_by('-calculated_at')[:10]
-    
-    context['bar_labels'] = [r.village.name for r in latest_risks]
-    context['bar_data'] = [float(r.probability_score * 100) for r in latest_risks]
+    # 2. Area-wise Trends (Bar Chart: latest risk snapshot by village)
+    context['bar_labels'] = [r.village.name for r in top_risk_villages]
+    context['bar_data'] = [float(r.probability_score * 100) for r in top_risk_villages]
 
-    # 3. Global Risk Distribution (Pie Chart) [cite: 319-321]
-    risk_stats = RiskRecord.objects.values('risk_level').annotate(count=Count('id'))
-    
-    # Ensure standard order: High, Medium, Low
+    # 3. Global Risk Distribution (Pie Chart from latest snapshot only)
+    risk_stats = latest_risks.values('risk_level').annotate(count=Count('id'))
     risk_map = {r['risk_level']: r['count'] for r in risk_stats}
     context['pie_labels'] = ['HIGH RISK', 'MEDIUM RISK', 'LOW RISK']
     context['pie_data'] = [
@@ -179,10 +190,39 @@ def admin_dashboard(request):
         risk_map.get('low', 0)
     ]
 
-    # 4. Critical Node Monitoring Table [cite: 211-215]
-    context['high_risk_villages'] = RiskRecord.objects.filter(risk_level='high').order_by('-calculated_at')
+    # 4. Critical Node Monitoring Table (latest high-risk villages only)
+    context['high_risk_villages'] = latest_risks.filter(risk_level='high').order_by('-probability_score', '-calculated_at')
 
     return render(request, 'dashboard/admin_dashboard.html', context)
+
+
+@user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
+@login_required
+def admin_risk_history(request):
+    """Full historical risk logs with filters and pagination."""
+    if request.user.role != 'admin':
+        return redirect('accounts:user_dashboard')
+
+    risk_level = request.GET.get('risk_level', '')
+    village_id = request.GET.get('village', '')
+
+    records = RiskRecord.objects.all().select_related('village__mandal__district')
+
+    if risk_level in {'high', 'medium', 'low'}:
+        records = records.filter(risk_level=risk_level)
+    if village_id.isdigit():
+        records = records.filter(village_id=int(village_id))
+
+    paginator = Paginator(records, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'page_obj': page_obj,
+        'villages': Village.objects.filter(is_active=True).order_by('name'),
+        'selected_risk_level': risk_level,
+        'selected_village': village_id,
+    }
+    return render(request, 'dashboard/admin_risk_history.html', context)
 
 @login_required
 def user_dashboard(request):

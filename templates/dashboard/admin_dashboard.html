@@ -143,6 +143,9 @@
                 <p class="text-slate-400 text-xs font-medium mt-1 uppercase tracking-widest">ML Predicted Critical Areas</p>
             </div>
             <div class="flex items-center gap-3">
+                <a href="{% url 'accounts:admin_risk_history' %}" class="bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> Full Risk Logs
+                </a>
                 <a href="{% url 'analytics:export_risk_pdf' %}" class="bg-red-50 text-red-600 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
                     <i class="fa-solid fa-file-pdf mr-2"></i> Intelligence PDF
                 </a>
@@ -170,7 +173,7 @@
                             </div>
                             <div>
                                 <p class="font-extrabold text-slate-800 text-lg tracking-tight">{{ risk.village.name }}</p>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase">{{ risk.village.district.name }} Center</p>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">{{ risk.village.mandal.district.name }} Center</p>
                             </div>
                         </div>
                     </td>
@@ -182,7 +185,7 @@
                     </td>
                     <td class="p-8">
                         <p class="font-bold text-slate-700">{{ risk.calculated_at|date:"M d" }}</p>
-                        <p class="mono text-[10px] text-slate-400 uppercase">{{ risk.calculated_at|time:"H:i:s" }} UTC</p>
+                        <p class="mono text-[10px] text-slate-400 uppercase">{{ risk.calculated_at|time:"H:i:s" }} IST</p>
                     </td>
                     <td class="p-8">
                         <div class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl w-fit font-black text-[9px] uppercase tracking-tighter">

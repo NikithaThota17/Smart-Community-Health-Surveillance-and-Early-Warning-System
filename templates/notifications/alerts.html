@@ -16,7 +16,12 @@
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-800 text-lg">{{ alert.village.name }}</h3>
+                    <h3 class="font-bold text-slate-800 text-lg">
+                        {{ alert.village.name }}
+                        <span class="ml-2 text-[10px] uppercase font-black tracking-widest {% if alert.risk_record.risk_level == 'high' %}text-red-500{% else %}text-amber-500{% endif %}">
+                            {{ alert.risk_record.risk_level }} risk
+                        </span>
+                    </h3>
                     <p class="text-slate-500 text-sm">{{ alert.message }}</p>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 block">{{ alert.created_at|timesince }} ago</span>
                 </div>

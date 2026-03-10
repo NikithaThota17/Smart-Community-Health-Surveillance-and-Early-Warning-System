@@ -1,0 +1,100 @@
+{% extends 'base2.html' %}
+{% block title %}Risk History | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto fade-in-up">
+    <div class="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">Risk History Logs</h1>
+            <p class="text-slate-500 mt-1">Complete ML risk timeline with filters.</p>
+        </div>
+        <a href="{% url 'accounts:admin_dashboard' %}" class="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-900 hover:text-white transition-all text-xs font-black uppercase tracking-widest text-slate-700">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <form method="get" class="bg-white border border-slate-100 rounded-3xl p-6 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Risk Level</label>
+            <select name="risk_level" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm">
+                <option value="">All</option>
+                <option value="high" {% if selected_risk_level == 'high' %}selected{% endif %}>High</option>
+                <option value="medium" {% if selected_risk_level == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="low" {% if selected_risk_level == 'low' %}selected{% endif %}>Low</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Village</label>
+            <select name="village" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm">
+                <option value="">All</option>
+                {% for village in villages %}
+                <option value="{{ village.id }}" {% if selected_village == village.id|stringformat:"s" %}selected{% endif %}>
+                    {{ village.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="md:col-span-2 flex items-end gap-3">
+            <button type="submit" class="px-6 py-3 rounded-xl bg-[#0F766E] text-white text-xs font-black uppercase tracking-widest hover:bg-[#0D9488] transition-all">
+                Apply Filters
+            </button>
+            <a href="{% url 'accounts:admin_risk_history' %}" class="px-6 py-3 rounded-xl bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                Reset
+            </a>
+        </div>
+    </form>
+
+    <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Village</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">District</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Probability</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for risk in page_obj %}
+                <tr class="hover:bg-slate-50/60">
+                    <td class="p-5">
+                        <p class="text-sm font-bold text-slate-700">{{ risk.calculated_at|date:"M d, Y" }}</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">{{ risk.calculated_at|time:"H:i:s" }} IST</p>
+                    </td>
+                    <td class="p-5 text-sm font-bold text-slate-800">{{ risk.village.name }}</td>
+                    <td class="p-5 text-xs font-bold text-slate-500 uppercase">{{ risk.village.mandal.district.name }}</td>
+                    <td class="p-5">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
+                            {% if risk.risk_level == 'high' %}bg-red-50 text-red-600
+                            {% elif risk.risk_level == 'medium' %}bg-amber-50 text-amber-600
+                            {% else %}bg-green-50 text-green-600{% endif %}">
+                            {{ risk.risk_level }}
+                        </span>
+                    </td>
+                    <td class="p-5 mono font-bold text-slate-700">{{ risk.probability_score|floatformat:2 }}%</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-12 text-center text-slate-400 font-bold">No risk logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="mt-6 flex items-center justify-center gap-3">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&risk_level={{ selected_risk_level }}&village={{ selected_village }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">Previous</a>
+        {% endif %}
+        <span class="text-xs font-black uppercase tracking-widest text-slate-500">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&risk_level={{ selected_risk_level }}&village={{ selected_village }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
