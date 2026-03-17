@@ -59,6 +59,18 @@
                         <span class="text-sm font-bold text-slate-600">Waste Issues</span>
                         <input type="checkbox" name="waste_issue" class="w-6 h-6 accent-[#0F766E]" {% if form.waste_issue.value %}checked{% endif %}>
                     </label>
+                    <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition border border-transparent hover:border-[#0F766E]/20">
+                        <span class="text-sm font-bold text-slate-600">Drainage Issues</span>
+                        <input type="checkbox" name="drainage_issue" class="w-6 h-6 accent-[#0F766E]" {% if form.drainage_issue.value %}checked{% endif %}>
+                    </label>
+                    <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition border border-transparent hover:border-[#0F766E]/20">
+                        <span class="text-sm font-bold text-slate-600">Garbage Dumping</span>
+                        <input type="checkbox" name="garbage_dumping" class="w-6 h-6 accent-[#0F766E]" {% if form.garbage_dumping.value %}checked{% endif %}>
+                    </label>
+                    <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition border border-transparent hover:border-[#0F766E]/20">
+                        <span class="text-sm font-bold text-slate-600">Unsafe Drinking Water</span>
+                        <input type="checkbox" name="unsafe_drinking_water" class="w-6 h-6 accent-[#0F766E]" {% if form.unsafe_drinking_water.value %}checked{% endif %}>
+                    </label>
                 </div>
             </div>
 
@@ -90,6 +102,41 @@
             </div>
             {{ form.description }}
             <p class="text-[10px] text-slate-400 mt-4 font-medium italic">Summarize ground observations and critical symptom patterns.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                        <i class="fa-solid fa-clipboard-check text-sm"></i>
+                    </div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">5. Field Verification</h3>
+                </div>
+                {{ form.verification_notes }}
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center text-violet-600">
+                        <i class="fa-solid fa-list-check text-sm"></i>
+                    </div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">6. Recommended Response</h3>
+                </div>
+                <div class="space-y-3">
+                    <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition">
+                        <span class="text-sm font-bold text-slate-600">Field Visit Required</span>
+                        {{ form.field_visit_required }}
+                    </label>
+                    <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition">
+                        <span class="text-sm font-bold text-slate-600">Field Visit Completed</span>
+                        {{ form.field_visit_completed }}
+                    </label>
+                    <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition">
+                        <span class="text-sm font-bold text-slate-600">Recommend Health Camp</span>
+                        {{ form.camp_recommended }}
+                    </label>
+                </div>
+            </div>
         </div>
 
         <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">

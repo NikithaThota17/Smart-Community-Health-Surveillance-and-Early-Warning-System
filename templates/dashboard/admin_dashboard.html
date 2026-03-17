@@ -116,6 +116,19 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div class="glass-card p-8 rounded-[3rem] border border-slate-300">
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Citizen Complaints Awaiting Action</p>
+            <h3 class="text-4xl font-extrabold text-slate-900">{{ pending_complaints }}</h3>
+            <p class="text-sm text-slate-500 mt-3">Open citizen reports that still need review, assignment, or closure.</p>
+        </div>
+        <div class="glass-card p-8 rounded-[3rem] border border-slate-300">
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Verified ASHA Reports</p>
+            <h3 class="text-4xl font-extrabold text-slate-900">{{ verified_field_reports_count }}</h3>
+            <p class="text-sm text-slate-500 mt-3">Field reports that reached admin after ASHA verification or action.</p>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
         <div class="xl:col-span-2 glass-card p-12 rounded-[4rem] relative border border-slate-300">
     <div class="flex justify-between items-center mb-10">
@@ -204,6 +217,60 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div class="glass-card rounded-[3rem] overflow-hidden border-slate-300">
+            <div class="p-8 border-b border-slate-300">
+                <h3 class="font-extrabold text-slate-900 text-xl tracking-tight">Citizen Complaint Queue</h3>
+                <p class="text-slate-400 text-xs font-medium mt-1 uppercase tracking-widest">Direct inputs waiting for administrative action</p>
+            </div>
+            <div class="divide-y divide-slate-200">
+                {% for complaint in recent_citizen_complaints %}
+                <div class="p-8">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-bold text-slate-800">{{ complaint.user.email }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ complaint.village.name }} | {{ complaint.created_at|date:"M d, Y H:i" }}</p>
+                            <p class="text-sm text-slate-600 mt-3">{{ complaint.description|default:"No extra description provided." }}</p>
+                            <p class="text-xs text-slate-500 mt-3">
+                                Status: {{ complaint.get_status_display }}{% if complaint.assigned_health_worker %} | Assigned to: {{ complaint.assigned_health_worker.email }}{% endif %}
+                            </p>
+                        </div>
+                        <a href="{% url 'complaints:admin_complaint_action' complaint.id %}" class="bg-[#0F766E] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                            Take Action
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-8 text-sm text-slate-400">No citizen complaints available.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-card rounded-[3rem] overflow-hidden border-slate-300">
+            <div class="p-8 border-b border-slate-300">
+                <h3 class="font-extrabold text-slate-900 text-xl tracking-tight">Recent ASHA Worker Verification</h3>
+                <p class="text-slate-400 text-xs font-medium mt-1 uppercase tracking-widest">Field-level updates reaching the admin layer</p>
+            </div>
+            <div class="divide-y divide-slate-200">
+                {% for report in recent_health_worker_reports %}
+                <div class="p-8">
+                    <p class="font-bold text-slate-800">{{ report.user.email }}</p>
+                    <p class="text-xs text-slate-500 mt-1">{{ report.village.name }} | {{ report.affected_count }} affected | {{ report.get_status_display }}</p>
+                    <p class="text-sm text-slate-600 mt-3">{{ report.verification_notes|default:report.description|default:"No verification notes added." }}</p>
+                    <p class="text-xs text-slate-500 mt-3">
+                        {% if report.field_visit_required %}Field visit required{% endif %}
+                        {% if report.field_visit_required and report.camp_recommended %} | {% endif %}
+                        {% if report.camp_recommended %}Camp recommended{% endif %}
+                        {% if report.escalation_target %} | Escalation target: {{ report.escalation_target }}{% endif %}
+                    </p>
+                </div>
+                {% empty %}
+                <div class="p-8 text-sm text-slate-400">No health worker reports available.</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 

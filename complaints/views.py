@@ -1,12 +1,122 @@
+import os
 import google.generativeai as genai
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import CitizenComplaintForm, HealthWorkerReportForm
+from django.contrib.auth import get_user_model
+from .forms import CitizenComplaintForm, HealthWorkerReportForm, AdminActionForm
 from .models import Complaint
 
-# Use environment variables for keys in a real project
-genai.configure(api_key="AIzaSyA-wbm4CPmGo4pIaRV-PXkI16o29LTkfBU")
+User = get_user_model()
+
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if gemini_api_key:
+    genai.configure(api_key=gemini_api_key)
+
+
+SYMPTOM_LABELS = [
+    ("has_fever", "fever"),
+    ("has_diarrhea", "diarrhea"),
+    ("has_vomiting", "vomiting"),
+    ("has_headache", "headache"),
+    ("has_body_pain", "body pain"),
+    ("has_cough", "cough"),
+    ("has_cold", "cold"),
+    ("has_skin_rash", "skin rash"),
+    ("has_fatigue", "fatigue"),
+    ("has_breathing_difficulty", "breathing difficulty"),
+]
+
+ENVIRONMENT_LABELS = [
+    ("stagnant_water", "stagnant water"),
+    ("waste_issue", "waste accumulation"),
+    ("water_contamination", "water contamination"),
+    ("drainage_issue", "drainage issue"),
+    ("garbage_dumping", "garbage dumping"),
+    ("foul_smell", "foul smell"),
+    ("unsafe_drinking_water", "unsafe drinking water"),
+    ("nearby_illness_cases", "nearby illness cases"),
+]
+
+
+def _selected_labels(instance, label_map):
+    return [label for field_name, label in label_map if getattr(instance, field_name)]
+
+
+def _fallback_citizen_advice(complaint):
+    symptoms = _selected_labels(complaint, SYMPTOM_LABELS)
+    environment = _selected_labels(complaint, ENVIRONMENT_LABELS)
+    advice = []
+
+    if {"diarrhea", "vomiting"} & set(symptoms):
+        advice.append("Use ORS or other safe fluids and avoid unsafe drinking water.")
+    if {"fever", "body pain", "headache"} & set(symptoms):
+        advice.append("Monitor temperature, rest well, and contact the ASHA worker if symptoms continue.")
+    if "breathing difficulty" in symptoms:
+        advice.append("Seek urgent medical evaluation if breathing discomfort increases.")
+    if {"stagnant water", "garbage dumping"} & set(environment):
+        advice.append("Remove stagnant water and improve waste disposal around the household.")
+    if "water contamination" in environment or "unsafe drinking water" in environment:
+        advice.append("Boil or filter drinking water until the source is verified as safe.")
+
+    if not advice:
+        advice.append("Maintain hygiene, monitor symptoms, and report any worsening condition immediately.")
+
+    return "\n".join(f"- {line}" for line in advice[:4])
+
+
+def _fallback_health_worker_advice(report):
+    actions = []
+    if report.affected_count >= 10:
+        actions.append("Plan an immediate village screening round for symptomatic households.")
+    if report.camp_recommended:
+        actions.append("Coordinate a focused village health camp with PHC support.")
+    if report.stagnant_water or report.mosquito_severity == "high":
+        actions.append("Escalate vector control and larval source reduction activities.")
+    if report.water_contamination or report.unsafe_drinking_water:
+        actions.append("Request water quality testing and promote safe drinking water instructions.")
+    if report.nearby_illness_cases:
+        actions.append("Track nearby households for possible cluster formation over the next 48 hours.")
+
+    if not actions:
+        actions.append("Continue local surveillance and submit daily field verification updates.")
+
+    return "\n".join(f"- {line}" for line in actions[:4])
+
+
+def _generate_gemini_text(prompt, fallback_text):
+    if not gemini_api_key:
+        return fallback_text
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        return (response.text or "").strip() or fallback_text
+    except Exception:
+        return fallback_text
+
+
+def _build_citizen_prompt(complaint):
+    symptoms = _selected_labels(complaint, SYMPTOM_LABELS) or ["general discomfort"]
+    environment = _selected_labels(complaint, ENVIRONMENT_LABELS) or ["no major sanitation issue reported"]
+    return (
+        "You are assisting a rural public-health complaint system. "
+        f"A citizen from {complaint.village.name} reported symptoms: {', '.join(symptoms)}. "
+        f"Environmental factors: {', '.join(environment)}. "
+        "Give concise first-level guidance in 4 bullet points. "
+        "Avoid diagnosis. Include hydration, sanitation, monitoring, and when to contact an ASHA worker or PHC."
+    )
+
+
+def _build_health_worker_prompt(report):
+    environment = _selected_labels(report, ENVIRONMENT_LABELS) or ["no major sanitation issue reported"]
+    return (
+        "You are assisting an ASHA worker in a village surveillance system. "
+        f"The health worker reported {report.affected_count} affected people in {report.village.name}. "
+        f"Environmental factors: {', '.join(environment)}. "
+        f"Field visit required: {report.field_visit_required}. Camp recommended: {report.camp_recommended}. "
+        "Provide 4 short bullet points covering community actions, monitoring, escalation, and safety measures."
+    )
 
 @login_required
 def citizen_complaint_view(request):
@@ -25,30 +135,17 @@ def citizen_complaint_view(request):
             complaint = form.save(commit=False)
             complaint.user = request.user
             complaint.village = request.user.village
-            
-            # 1. Prepare AI Prompt
-            symptoms = []
-            if complaint.has_fever: symptoms.append("Fever")
-            if complaint.has_diarrhea: symptoms.append("Diarrhea")
-            if complaint.has_vomiting: symptoms.append("Vomiting")
-            
-            prompt = (f"User in {complaint.village.name} reported {', '.join(symptoms)}. "
-                      f"Environment: Stagnant water={complaint.stagnant_water}. "
-                      f"Give 3 short 'Do's' and 3 short 'Don'ts' for community health safety.")
-            
-            # 2. Call Gemini AI
-            try:
-                model = genai.GenerativeModel('gemini-pro')
-                response = model.generate_content(prompt)
-                complaint.ai_suggestion = response.text
-            except Exception:
-                complaint.ai_suggestion = "Stay hydrated and keep surroundings clean of stagnant water."
-            
-            # 3. Save and Redirect
+            complaint.report_source = 'citizen'
+            complaint.status = 'submitted'
+            complaint.priority = 'high' if complaint.symptom_count >= 4 or complaint.has_breathing_difficulty else 'medium'
+            prompt = _build_citizen_prompt(complaint)
+            fallback_text = _fallback_citizen_advice(complaint)
+            complaint.ai_suggestion = _generate_gemini_text(prompt, fallback_text)
+            complaint.medication_guidance = fallback_text
             complaint.save()
             return render(request, 'complaints/complaint_success.html', {
                 'ai_advice': complaint.ai_suggestion,
-                'complaint': complaint # Useful for displaying the uploaded image
+                'complaint': complaint
             })
     else:
         form = CitizenComplaintForm()
@@ -68,22 +165,20 @@ def health_worker_report_view(request):
             report = form.save(commit=False)
             report.user = request.user
             report.village = request.user.village
-            
-            # --- GEMINI AI LOGIC FOR HEALTH WORKER ---
-            # Professional prompt for community-level data
-            prompt = (f"Health Worker reported {report.affected_count} affected people in {report.village.name}. "
-                      f"Environmental issues: Stagnant water={report.stagnant_water}, Mosquitoes={report.mosquito_severity}. "
-                      f"Give 3 professional 'Community Actions' and 3 'Safety Measures' for this area.")
-            
-            try:
-                model = genai.GenerativeModel('gemini-pro')
-                response = model.generate_content(prompt)
-                report.ai_suggestion = response.text
-            except Exception:
-                report.ai_suggestion = "Ensure community water sources are tested and vector control measures are escalated."
-            
+            report.report_source = 'health_worker'
+            report.status = 'verified' if report.field_visit_completed else 'under_review'
+            if report.affected_count >= 15 or report.camp_recommended:
+                report.priority = 'high'
+            elif report.affected_count >= 5:
+                report.priority = 'medium'
+            else:
+                report.priority = 'low'
+
+            prompt = _build_health_worker_prompt(report)
+            fallback_text = _fallback_health_worker_advice(report)
+            report.ai_suggestion = _generate_gemini_text(prompt, fallback_text)
+            report.medication_guidance = "Share precautionary guidance with affected households and route severe cases to the nearest PHC."
             report.save()
-            # Redirect to success page with AI data and the report object
             return render(request, 'complaints/complaint_success.html', {
                 'ai_advice': report.ai_suggestion,
                 'complaint': report 
@@ -100,3 +195,34 @@ def my_submissions_view(request):
 
 def complaint_success_view(request):
     return render(request, 'complaints/complaint_success.html')
+
+
+@login_required
+def admin_complaint_action_view(request, complaint_id):
+    if request.user.role != 'admin':
+        messages.warning(request, "Access restricted to administrators.")
+        return redirect('accounts:user_dashboard')
+
+    complaint = get_object_or_404(
+        Complaint.objects.select_related('user', 'village__mandal__district', 'assigned_health_worker'),
+        id=complaint_id,
+    )
+    health_workers = User.objects.filter(role='health_worker').order_by('email')
+
+    if request.method == 'POST':
+        form = AdminActionForm(request.POST, instance=complaint, health_workers=health_workers)
+        if form.is_valid():
+            complaint = form.save(commit=False)
+            if complaint.status == 'assigned' and not complaint.assigned_health_worker:
+                messages.error(request, "Assign a health worker before marking the complaint as assigned.")
+            else:
+                complaint.save()
+                messages.success(request, "Admin action updated successfully.")
+                return redirect('accounts:admin_dashboard')
+    else:
+        form = AdminActionForm(instance=complaint, health_workers=health_workers)
+
+    return render(request, 'complaints/admin_action.html', {
+        'complaint': complaint,
+        'form': form,
+    })

@@ -30,6 +30,18 @@
                 </div>
             </div>
 
+            {% if complaint.medication_guidance %}
+            <div class="bg-amber-50 text-slate-800 p-8 rounded-[2.5rem] text-left mb-10 border border-amber-200">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-notes-medical text-amber-600"></i>
+                    <h3 class="font-bold uppercase tracking-widest text-xs text-amber-700">Citizen Health Guidance</h3>
+                </div>
+                <div class="text-sm leading-loose whitespace-pre-line font-medium">
+                    {{ complaint.medication_guidance|linebreaks }}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="flex flex-col gap-4">
     {% if user.role == 'health_worker' %}
         <a href="{% url 'accounts:health_worker_dashboard' %}" class="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:bg-slate-800 transition-all">

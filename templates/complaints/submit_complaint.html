@@ -179,6 +179,20 @@
                 </label>
 
             </div>
+
+            <div class="mt-8 pt-8 border-t border-slate-100">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Additional Symptoms</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for field in form %}
+                        {% if field.name == 'has_cough' or field.name == 'has_cold' or field.name == 'has_skin_rash' or field.name == 'has_fatigue' or field.name == 'has_breathing_difficulty' %}
+                        <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition border border-transparent hover:border-[#0F766E]/20">
+                            <span class="text-sm font-bold text-slate-600">{{ field.label }}</span>
+                            {{ field }}
+                        </label>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -189,7 +203,7 @@
                 </div>
                 <div class="space-y-3">
                     {% for field in form %}
-                        {% if field.name in "stagnant_water,water_contamination,waste_issue" %}
+                        {% if field.name == 'stagnant_water' or field.name == 'water_contamination' or field.name == 'waste_issue' or field.name == 'drainage_issue' or field.name == 'garbage_dumping' or field.name == 'foul_smell' or field.name == 'unsafe_drinking_water' or field.name == 'nearby_illness_cases' %}
                         <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition border border-transparent hover:border-[#0F766E]/20">
                             <span class="text-sm font-bold text-slate-600">{{ field.label }}</span>
                             {{ field }}

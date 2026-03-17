@@ -46,6 +46,80 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-10">
+        <div class="xl:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-8 border-b border-slate-50 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-800">Citizen Complaints in Your Village</h3>
+                    <p class="text-xs text-slate-400 mt-1">These complaints now flow directly into the ASHA worker dashboard.</p>
+                </div>
+            </div>
+            <table class="w-full text-left">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Citizen</th>
+                        <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Symptoms</th>
+                        <th class="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Priority</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for report in citizen_alerts %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-6">
+                            <p class="font-bold text-slate-700 text-sm">{{ report.user.email }}</p>
+                            <p class="text-[10px] text-slate-400 uppercase">{{ report.created_at|date:"M d, Y" }}</p>
+                        </td>
+                        <td class="p-6">
+                            <div class="flex flex-wrap gap-2">
+                                {% if report.has_fever %}<span class="px-2 py-1 bg-red-50 text-red-600 rounded text-[9px] font-bold uppercase">Fever</span>{% endif %}
+                                {% if report.has_diarrhea %}<span class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[9px] font-bold uppercase">Diarrhea</span>{% endif %}
+                                {% if report.has_vomiting %}<span class="px-2 py-1 bg-orange-50 text-orange-600 rounded text-[9px] font-bold uppercase">Vomiting</span>{% endif %}
+                                {% if report.has_cough %}<span class="px-2 py-1 bg-cyan-50 text-cyan-700 rounded text-[9px] font-bold uppercase">Cough</span>{% endif %}
+                                {% if report.has_breathing_difficulty %}<span class="px-2 py-1 bg-violet-50 text-violet-700 rounded text-[9px] font-bold uppercase">Breathing</span>{% endif %}
+                                {% if report.symptom_count == 0 %}<span class="text-slate-400 text-xs italic">Sanitation-only report</span>{% endif %}
+                            </div>
+                        </td>
+                        <td class="p-6">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest {% if report.priority == 'high' %}bg-red-100 text-red-600{% elif report.priority == 'medium' %}bg-amber-100 text-amber-600{% else %}bg-green-100 text-green-600{% endif %}">
+                                {{ report.priority }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="p-10 text-center text-slate-400">No citizen complaints in this village yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <h3 class="font-bold text-slate-800 mb-6">Symptom Snapshot</h3>
+            <div class="space-y-4 text-sm font-medium text-slate-600">
+                <div class="flex justify-between"><span>Fever complaints</span><span class="font-bold text-slate-900">{{ symptom_summary.fever_cases }}</span></div>
+                <div class="flex justify-between"><span>Diarrhea complaints</span><span class="font-bold text-slate-900">{{ symptom_summary.diarrhea_cases }}</span></div>
+                <div class="flex justify-between"><span>Cough complaints</span><span class="font-bold text-slate-900">{{ symptom_summary.cough_cases }}</span></div>
+                <div class="flex justify-between"><span>Breathing difficulty</span><span class="font-bold text-slate-900">{{ symptom_summary.breathing_cases }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden mb-10">
+        <div class="p-8 border-b border-slate-50">
+            <h3 class="font-bold text-slate-800">Cases Assigned by Admin</h3>
+        </div>
+        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for case in assigned_cases %}
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50">
+                <p class="text-sm font-bold text-slate-800">{{ case.user.email }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ case.village.name }} | {{ case.get_status_display }}</p>
+                <p class="text-xs text-slate-600 mt-3">{{ case.admin_action|default:"No admin action note yet." }}</p>
+            </div>
+            {% empty %}
+            <p class="text-sm text-slate-400">No complaints are assigned to you yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
     <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-8 border-b border-slate-50 flex items-center justify-between">
             <h3 class="font-bold text-slate-800">Recent Field Reports</h3>

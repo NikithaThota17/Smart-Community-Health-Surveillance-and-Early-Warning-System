@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Q
 import random
 from django.db.models import Sum, Count
 from django.core.paginator import Paginator
@@ -174,6 +174,8 @@ def admin_dashboard(request):
         'total_users': User.objects.count(),
         'high_risk_count': latest_risks.filter(risk_level='high').count(),
         'total_villages': Village.objects.filter(is_active=True).count(),
+        'pending_complaints': Complaint.objects.filter(report_source='citizen').exclude(status='resolved').count(),
+        'verified_field_reports_count': Complaint.objects.filter(report_source='health_worker', status__in=['verified', 'actioned', 'resolved']).count(),
     }
 
     # 2. Area-wise Trends (Bar Chart: latest risk snapshot by village)
@@ -192,6 +194,12 @@ def admin_dashboard(request):
 
     # 4. Critical Node Monitoring Table (latest high-risk villages only)
     context['high_risk_villages'] = latest_risks.filter(risk_level='high').order_by('-probability_score', '-calculated_at')
+    context['recent_citizen_complaints'] = Complaint.objects.filter(report_source='citizen').select_related(
+        'user', 'village__mandal__district', 'assigned_health_worker'
+    ).order_by('-created_at')[:8]
+    context['recent_health_worker_reports'] = Complaint.objects.filter(report_source='health_worker').select_related(
+        'user', 'village__mandal__district'
+    ).order_by('-created_at')[:6]
 
     return render(request, 'dashboard/admin_dashboard.html', context)
 
@@ -229,15 +237,23 @@ def user_dashboard(request):
     user_village = request.user.village
 
     risk = None
+    latest_submission = None
     if user_village:
         risk = RiskRecord.objects.filter(
             village=user_village
         ).order_by('-calculated_at').first()
+        latest_submission = Complaint.objects.filter(
+            user=request.user,
+            report_source='citizen'
+        ).order_by('-created_at').first()
 
     return render(
         request,
         'dashboard/citizen_dashboard.html',
-        {'risk': risk}
+        {
+            'risk': risk,
+            'latest_submission': latest_submission,
+        }
     )
 
 
@@ -275,16 +291,27 @@ def health_worker_dashboard_view(request):
     if request.user.role != 'health_worker':
         return redirect('accounts:user_dashboard')
     
-    # Community Stats for the Health Worker's Village
     village = request.user.village
-    village_reports = Complaint.objects.filter(village=village)
+    village_reports = Complaint.objects.filter(village=village).select_related('user', 'assigned_health_worker')
+    citizen_reports = village_reports.filter(report_source='citizen').order_by('-created_at')
+    field_reports = village_reports.filter(report_source='health_worker').order_by('-created_at')
+    assigned_cases = Complaint.objects.filter(assigned_health_worker=request.user).select_related('user', 'village').order_by('-created_at')[:5]
+
+    symptom_summary = citizen_reports.aggregate(
+        fever_cases=Count('id', filter=Q(has_fever=True)),
+        diarrhea_cases=Count('id', filter=Q(has_diarrhea=True)),
+        cough_cases=Count('id', filter=Q(has_cough=True)),
+        breathing_cases=Count('id', filter=Q(has_breathing_difficulty=True)),
+    )
     
     context = {
         'village_name': village.name if village else "Not Assigned",
         'total_area_reports': village_reports.count(),
-        'total_affected': village_reports.aggregate(Sum('affected_count'))['affected_count__sum'] or 0,
-        'recent_reports': village_reports.order_by('-created_at')[:5],
-        # Logic for trend indicator (Simplified for B.Tech demo)
-        'trend': "Rising" if village_reports.filter(has_fever=True).count() > 5 else "Stable"
+        'total_affected': field_reports.aggregate(Sum('affected_count'))['affected_count__sum'] or 0,
+        'recent_reports': field_reports[:5],
+        'citizen_alerts': citizen_reports[:6],
+        'assigned_cases': assigned_cases,
+        'symptom_summary': symptom_summary,
+        'trend': "Rising" if citizen_reports.filter(has_fever=True).count() > 5 else "Stable"
     }
     return render(request, 'dashboard/health_worker_dashboard.html', context)

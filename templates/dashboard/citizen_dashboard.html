@@ -70,5 +70,32 @@
             </ul>
         </div>
     </div>
+
+    {% if latest_submission %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Last Submitted Factors</h3>
+            <div class="flex flex-wrap gap-2 mb-4">
+                {% if latest_submission.has_fever %}<span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest">Fever</span>{% endif %}
+                {% if latest_submission.has_diarrhea %}<span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest">Diarrhea</span>{% endif %}
+                {% if latest_submission.has_vomiting %}<span class="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-black uppercase tracking-widest">Vomiting</span>{% endif %}
+                {% if latest_submission.has_cough %}<span class="px-3 py-1 bg-cyan-50 text-cyan-700 rounded-full text-[10px] font-black uppercase tracking-widest">Cough</span>{% endif %}
+                {% if latest_submission.has_skin_rash %}<span class="px-3 py-1 bg-pink-50 text-pink-700 rounded-full text-[10px] font-black uppercase tracking-widest">Skin Rash</span>{% endif %}
+                {% if latest_submission.stagnant_water %}<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest">Stagnant Water</span>{% endif %}
+                {% if latest_submission.water_contamination %}<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest">Water Contamination</span>{% endif %}
+                {% if latest_submission.garbage_dumping %}<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest">Garbage Dumping</span>{% endif %}
+                {% if latest_submission.unsafe_drinking_water %}<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest">Unsafe Water</span>{% endif %}
+            </div>
+            <p class="text-sm text-slate-500">Status: <strong class="text-slate-800">{{ latest_submission.get_status_display }}</strong> | Priority: <strong class="text-slate-800">{{ latest_submission.get_priority_display }}</strong></p>
+        </div>
+
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Medication / Guidance Report</h3>
+            <div class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                {{ latest_submission.medication_guidance|default:latest_submission.ai_suggestion|default:"Submit a complaint to receive guidance." }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

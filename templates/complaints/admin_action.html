@@ -1,0 +1,48 @@
+{% extends 'base2.html' %}
+{% block title %}Admin Action | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-5xl mx-auto fade-in-up">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Complaint <span class="text-[#0F766E]">Action Desk</span></h1>
+        <p class="text-slate-500 mt-1">Review the complaint, assign field work, and record the administrative response.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Complaint Summary</p>
+            <div class="space-y-4 text-sm text-slate-700">
+                <p><strong>Reporter:</strong> {{ complaint.user.email }}</p>
+                <p><strong>Village:</strong> {{ complaint.village.name }}</p>
+                <p><strong>Source:</strong> {{ complaint.get_report_source_display }}</p>
+                <p><strong>Current Status:</strong> {{ complaint.get_status_display }}</p>
+                <p><strong>Priority:</strong> {{ complaint.get_priority_display }}</p>
+                <p><strong>Submitted:</strong> {{ complaint.created_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Description:</strong> {{ complaint.description|default:"No additional description provided." }}</p>
+                {% if complaint.verification_notes %}
+                <p><strong>Verification Notes:</strong> {{ complaint.verification_notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-5">Administrative Update</p>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                {% for field in form %}
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ field.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn-teal-glow bg-[#0F766E] text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs">
+                    Save Action
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
