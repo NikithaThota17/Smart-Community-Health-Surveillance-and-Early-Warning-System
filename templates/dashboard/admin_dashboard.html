@@ -230,11 +230,11 @@
                 <div class="p-8">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="font-bold text-slate-800">{{ complaint.user.email }}</p>
+                            <p class="font-bold text-slate-800">{{ complaint.user.get_full_name|default:complaint.user.email }}</p>
                             <p class="text-xs text-slate-500 mt-1">{{ complaint.village.name }} | {{ complaint.created_at|date:"M d, Y H:i" }}</p>
                             <p class="text-sm text-slate-600 mt-3">{{ complaint.description|default:"No extra description provided." }}</p>
                             <p class="text-xs text-slate-500 mt-3">
-                                Status: {{ complaint.get_status_display }}{% if complaint.assigned_health_worker %} | Assigned to: {{ complaint.assigned_health_worker.email }}{% endif %}
+                                Status: {{ complaint.get_status_display }}{% if complaint.assigned_health_worker %} | Assigned to: {{ complaint.assigned_health_worker.get_full_name|default:complaint.assigned_health_worker.email }}{% endif %}
                             </p>
                         </div>
                         <a href="{% url 'complaints:admin_complaint_action' complaint.id %}" class="bg-[#0F766E] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
@@ -256,8 +256,11 @@
             <div class="divide-y divide-slate-200">
                 {% for report in recent_health_worker_reports %}
                 <div class="p-8">
-                    <p class="font-bold text-slate-800">{{ report.user.email }}</p>
+                    <p class="font-bold text-slate-800">{{ report.user.get_full_name|default:report.user.email }}</p>
                     <p class="text-xs text-slate-500 mt-1">{{ report.village.name }} | {{ report.affected_count }} affected | {{ report.get_status_display }}</p>
+                    {% if report.parent_complaint %}
+                    <p class="text-xs text-[#0F766E] mt-2">Linked citizen case: {{ report.parent_complaint.user.get_full_name|default:report.parent_complaint.user.email }}</p>
+                    {% endif %}
                     <p class="text-sm text-slate-600 mt-3">{{ report.verification_notes|default:report.description|default:"No verification notes added." }}</p>
                     <p class="text-xs text-slate-500 mt-3">
                         {% if report.field_visit_required %}Field visit required{% endif %}

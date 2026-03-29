@@ -6,6 +6,13 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from .forms import CitizenComplaintForm, HealthWorkerReportForm, AdminActionForm
 from .models import Complaint
+from .workflow import (
+    apply_health_worker_follow_up,
+    create_assignment_notification,
+    create_resolution_notification,
+    ensure_complaint_workflow_fields,
+)
+from analytics.logic import run_risk_analysis
 
 User = get_user_model()
 
@@ -143,6 +150,7 @@ def citizen_complaint_view(request):
             complaint.ai_suggestion = _generate_gemini_text(prompt, fallback_text)
             complaint.medication_guidance = fallback_text
             complaint.save()
+            run_risk_analysis(village_ids=[complaint.village_id])
             return render(request, 'complaints/complaint_success.html', {
                 'ai_advice': complaint.ai_suggestion,
                 'complaint': complaint
@@ -159,13 +167,18 @@ def health_worker_report_view(request):
         messages.warning(request, "Access restricted to Health Workers.")
         return redirect('accounts:user_dashboard')
 
+    if not request.user.village:
+        messages.error(request, "Your profile is missing a Village. Please update your profile first.")
+        return redirect('accounts:profile')
+
     if request.method == 'POST':
-        form = HealthWorkerReportForm(request.POST, request.FILES)
+        form = HealthWorkerReportForm(request.POST, request.FILES, village=request.user.village)
         if form.is_valid():
             report = form.save(commit=False)
             report.user = request.user
             report.village = request.user.village
             report.report_source = 'health_worker'
+            report.parent_complaint = form.cleaned_data.get('linked_complaint')
             report.status = 'verified' if report.field_visit_completed else 'under_review'
             if report.affected_count >= 15 or report.camp_recommended:
                 report.priority = 'high'
@@ -179,12 +192,15 @@ def health_worker_report_view(request):
             report.ai_suggestion = _generate_gemini_text(prompt, fallback_text)
             report.medication_guidance = "Share precautionary guidance with affected households and route severe cases to the nearest PHC."
             report.save()
+            if report.parent_complaint_id:
+                apply_health_worker_follow_up(report.parent_complaint, report)
+            run_risk_analysis(village_ids=[report.village_id])
             return render(request, 'complaints/complaint_success.html', {
                 'ai_advice': report.ai_suggestion,
                 'complaint': report 
             })
     else:
-        form = HealthWorkerReportForm()
+        form = HealthWorkerReportForm(village=request.user.village)
     
     return render(request, 'complaints/health_worker_report.html', {'form': form})
 
@@ -210,13 +226,40 @@ def admin_complaint_action_view(request, complaint_id):
     health_workers = User.objects.filter(role='health_worker').order_by('email')
 
     if request.method == 'POST':
+        previous_worker_id = complaint.assigned_health_worker_id
+        previous_status = complaint.status
+        previous_field_visit_required = complaint.field_visit_required
         form = AdminActionForm(request.POST, instance=complaint, health_workers=health_workers)
         if form.is_valid():
             complaint = form.save(commit=False)
             if complaint.status == 'assigned' and not complaint.assigned_health_worker:
                 messages.error(request, "Assign a health worker before marking the complaint as assigned.")
             else:
+                ensure_complaint_workflow_fields(complaint)
                 complaint.save()
+
+                if (
+                    complaint.assigned_health_worker_id and (
+                        previous_worker_id != complaint.assigned_health_worker_id
+                        or previous_field_visit_required != complaint.field_visit_required
+                        or previous_status != complaint.status
+                    )
+                ):
+                    create_assignment_notification(complaint, previous_worker_id=previous_worker_id)
+
+                if complaint.status == 'resolved' and previous_status != 'resolved':
+                    create_resolution_notification(
+                        complaint,
+                        'Complaint Resolved',
+                        f"Complaint #{complaint.id} has been resolved by the administration.",
+                    )
+                elif complaint.status == 'escalated' and previous_status != 'escalated':
+                    create_resolution_notification(
+                        complaint,
+                        'Complaint Escalated',
+                        f"Complaint #{complaint.id} has been escalated for higher-level action.",
+                    )
+
                 messages.success(request, "Admin action updated successfully.")
                 return redirect('accounts:admin_dashboard')
     else:

@@ -14,9 +14,10 @@ from complaints.models import Complaint
 # App-specific imports
 from .models import EmailOTP
 from .forms import ProfileUpdateForm
-from locations.models import Country, Village
+from locations.models import Country, District, Mandal, Village
 from complaints.models import Complaint
 from analytics.models import RiskRecord
+from notifications.models import Notification
 
 User = get_user_model()
 
@@ -73,6 +74,12 @@ def signup_view(request):
         password = request.POST.get('password')
         role = request.POST.get('role')
         village_id = request.POST.get('village')
+        first_name = (request.POST.get('first_name') or '').strip()
+        last_name = (request.POST.get('last_name') or '').strip()
+
+        if not first_name or not last_name:
+            messages.error(request, 'First name and last name are required.')
+            return redirect('accounts:signup')
 
         # Check if user exists
         if User.objects.filter(email=email).exists():
@@ -84,6 +91,8 @@ def signup_view(request):
             email=email,
             password=password,
             role=role,
+            first_name=first_name,
+            last_name=last_name,
             is_active=False
         )
 
@@ -158,8 +167,8 @@ def logout_view(request):
 # DASHBOARDS
 # =========================================================
 
-@user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 @login_required
+@user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def admin_dashboard(request):
     """Finalized Master Dashboard with Chart.js Data Integration."""
     if request.user.role != 'admin':
@@ -176,6 +185,8 @@ def admin_dashboard(request):
         'total_villages': Village.objects.filter(is_active=True).count(),
         'pending_complaints': Complaint.objects.filter(report_source='citizen').exclude(status='resolved').count(),
         'verified_field_reports_count': Complaint.objects.filter(report_source='health_worker', status__in=['verified', 'actioned', 'resolved']).count(),
+        'pending_field_visits_count': Complaint.objects.filter(field_visit_required=True, field_visit_completed=False).count(),
+        'active_alert_count': Notification.objects.filter(category='risk_alert', is_resolved=False).count(),
     }
 
     # 2. Area-wise Trends (Bar Chart: latest risk snapshot by village)
@@ -198,14 +209,14 @@ def admin_dashboard(request):
         'user', 'village__mandal__district', 'assigned_health_worker'
     ).order_by('-created_at')[:8]
     context['recent_health_worker_reports'] = Complaint.objects.filter(report_source='health_worker').select_related(
-        'user', 'village__mandal__district'
+        'user', 'village__mandal__district', 'parent_complaint__user'
     ).order_by('-created_at')[:6]
 
     return render(request, 'dashboard/admin_dashboard.html', context)
 
 
-@user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 @login_required
+@user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def admin_risk_history(request):
     """Full historical risk logs with filters and pagination."""
     if request.user.role != 'admin':
@@ -263,25 +274,83 @@ def user_dashboard(request):
 
 @login_required
 def profile_view(request):
+    def _location_context_for_user(user, selected_district_id="", selected_mandal_id="", selected_village_id=""):
+        districts = District.objects.filter(state__name='Andhra Pradesh').order_by('name')
+        mandals = Mandal.objects.none()
+        villages = Village.objects.none()
+
+        if not selected_village_id and user.village_id:
+            selected_village_id = str(user.village_id)
+        if not selected_mandal_id and user.village_id:
+            selected_mandal_id = str(user.village.mandal_id)
+        if not selected_district_id and user.village_id:
+            selected_district_id = str(user.village.mandal.district_id)
+
+        if selected_district_id and selected_district_id.isdigit():
+            mandals = Mandal.objects.filter(district_id=int(selected_district_id)).order_by('name')
+        if selected_mandal_id and selected_mandal_id.isdigit():
+            villages = Village.objects.filter(mandal_id=int(selected_mandal_id), is_active=True).order_by('name')
+
+        return {
+            'districts': districts,
+            'mandals': mandals,
+            'villages': villages,
+            'selected_district_id': selected_district_id,
+            'selected_mandal_id': selected_mandal_id,
+            'selected_village_id': selected_village_id,
+        }
+
     if request.method == 'POST':
         form = ProfileUpdateForm(
             request.POST,
             request.FILES,
             instance=request.user
         )
+        village_id = (request.POST.get('village') or '').strip()
+        change_location = (request.POST.get('change_location') == '1') or bool(village_id)
+        district_id = (request.POST.get('district') or '').strip()
+        mandal_id = (request.POST.get('mandal') or '').strip()
 
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully.')
-            return redirect('accounts:profile')
+            user = form.save(commit=False)
+
+            if change_location:
+                if not village_id:
+                    messages.error(request, 'Please select a village to update location.')
+                else:
+                    village = get_object_or_404(Village, id=village_id, is_active=True)
+                    user.village = village
+                    user.save()
+                    messages.success(request, 'Profile and location updated successfully.')
+                    return redirect('accounts:profile')
+            else:
+                user.save()
+                messages.success(request, 'Profile updated successfully.')
+                return redirect('accounts:profile')
+        else:
+            messages.error(request, 'Please correct the highlighted profile fields and try again.')
 
     else:
         form = ProfileUpdateForm(instance=request.user)
+        change_location = False
+        district_id = ''
+        mandal_id = ''
+        village_id = ''
 
+    location_context = _location_context_for_user(
+        request.user,
+        selected_district_id=district_id,
+        selected_mandal_id=mandal_id,
+        selected_village_id=village_id,
+    )
     return render(
         request,
         'accounts/profile.html',
-        {'form': form}
+        {
+            'form': form,
+            'change_location': change_location,
+            **location_context,
+        }
     )
 
 
@@ -292,10 +361,31 @@ def health_worker_dashboard_view(request):
         return redirect('accounts:user_dashboard')
     
     village = request.user.village
-    village_reports = Complaint.objects.filter(village=village).select_related('user', 'assigned_health_worker')
+    latest_area_risk = RiskRecord.objects.filter(village=village).order_by('-calculated_at').first() if village else None
+    assigned_base_qs = Complaint.objects.filter(assigned_health_worker=request.user).select_related(
+        'user', 'village', 'assigned_health_worker', 'parent_complaint__user'
+    )
+    village_reports = Complaint.objects.filter(village=village).select_related(
+        'user', 'assigned_health_worker', 'parent_complaint__user'
+    ) if village else Complaint.objects.none()
     citizen_reports = village_reports.filter(report_source='citizen').order_by('-created_at')
     field_reports = village_reports.filter(report_source='health_worker').order_by('-created_at')
-    assigned_cases = Complaint.objects.filter(assigned_health_worker=request.user).select_related('user', 'village').order_by('-created_at')[:5]
+    # Fallback: if location is missing or no village citizen reports exist yet,
+    # still show citizen cases assigned by admin.
+    if not village or not citizen_reports.exists():
+        citizen_reports = assigned_base_qs.filter(report_source='citizen').order_by('-created_at')
+    if not village or not field_reports.exists():
+        field_reports = assigned_base_qs.filter(report_source='health_worker').order_by('-created_at')
+    assigned_cases = assigned_base_qs.order_by('-created_at')[:5]
+    pending_field_visits = Complaint.objects.filter(
+        assigned_health_worker=request.user,
+        field_visit_required=True,
+        field_visit_completed=False,
+    ).select_related('user', 'village').order_by('field_visit_due_at', '-created_at')[:5]
+    workflow_notifications = Notification.objects.filter(
+        recipient=request.user,
+        is_resolved=False,
+    ).select_related('complaint', 'village').order_by('-created_at')[:5]
 
     symptom_summary = citizen_reports.aggregate(
         fever_cases=Count('id', filter=Q(has_fever=True)),
@@ -306,11 +396,14 @@ def health_worker_dashboard_view(request):
     
     context = {
         'village_name': village.name if village else "Not Assigned",
+        'latest_area_risk': latest_area_risk,
         'total_area_reports': village_reports.count(),
         'total_affected': field_reports.aggregate(Sum('affected_count'))['affected_count__sum'] or 0,
         'recent_reports': field_reports[:5],
         'citizen_alerts': citizen_reports[:6],
         'assigned_cases': assigned_cases,
+        'pending_field_visits': pending_field_visits,
+        'workflow_notifications': workflow_notifications,
         'symptom_summary': symptom_summary,
         'trend': "Rising" if citizen_reports.filter(has_fever=True).count() > 5 else "Stable"
     }

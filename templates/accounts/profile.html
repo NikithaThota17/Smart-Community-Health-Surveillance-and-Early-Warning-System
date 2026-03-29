@@ -31,21 +31,93 @@
         <div class="lg:col-span-2 bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
             <form method="POST" enctype="multipart/form-data" class="space-y-6">
                 {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-semibold">
+                    {{ form.non_field_errors|striptags }}
+                </div>
+                {% endif %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
                         {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                        <p class="text-xs text-red-600">{{ form.first_name.errors|striptags }}</p>
+                        {% endif %}
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
                         {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                        <p class="text-xs text-red-600">{{ form.last_name.errors|striptags }}</p>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                     {{ form.email }}
+                    {% if form.email.errors %}
+                    <p class="text-xs text-red-600">{{ form.email.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Current Location</label>
+                    <p class="text-sm font-semibold text-slate-700">
+                        {% if user.village %}
+                            {{ user.village.name }} ({{ user.village.mandal.name }}, {{ user.village.mandal.district.name }})
+                        {% else %}
+                            Not assigned
+                        {% endif %}
+                    </p>
+                    <button
+                        type="button"
+                        id="toggleLocationBtn"
+                        class="mt-2 text-xs font-bold text-[#0F766E] uppercase tracking-widest hover:underline"
+                    >
+                        Change Location
+                    </button>
                 </div>
 
+                <input type="hidden" name="change_location" id="change_location" value="{% if change_location %}1{% else %}0{% endif %}">
+
+                <div id="locationEditSection" class="{% if change_location %}block{% else %}hidden{% endif %} space-y-4 p-5 bg-[#22D3EE]/5 border border-[#22D3EE]/20 rounded-2xl">
+                    <p class="text-[10px] font-black text-[#0F766E] uppercase tracking-widest">Update Area Mapping</p>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">District</label>
+                        <select name="district" id="id_district" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-[#0F766E]">
+                            <option value="">Select District</option>
+                            {% for district in districts %}
+                            <option value="{{ district.id }}" {% if selected_district_id and selected_district_id == district.id|stringformat:'s' %}selected{% endif %}>
+                                {{ district.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mandal</label>
+                        <select name="mandal" id="id_mandal" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-[#0F766E]">
+                            <option value="">Select Mandal</option>
+                            {% for mandal in mandals %}
+                            <option value="{{ mandal.id }}" {% if selected_mandal_id and selected_mandal_id == mandal.id|stringformat:'s' %}selected{% endif %}>
+                                {{ mandal.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Village</label>
+                        <select name="village" id="id_village" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-[#0F766E]">
+                            <option value="">Select Village</option>
+                            {% for village in villages %}
+                            <option value="{{ village.id }}" {% if selected_village_id and selected_village_id == village.id|stringformat:'s' %}selected{% endif %}>
+                                {{ village.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
                 <div class="pt-6 flex items-center justify-between border-t border-slate-50">
                     <a href="{% url 'accounts:password_reset' %}" class="text-xs font-bold text-[#22D3EE] hover:underline uppercase tracking-widest">
                         Change Password?
@@ -58,4 +130,60 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const toggleBtn = document.getElementById("toggleLocationBtn");
+    const locationSection = document.getElementById("locationEditSection");
+    const changeLocation = document.getElementById("change_location");
+    const district = document.getElementById("id_district");
+    const mandal = document.getElementById("id_mandal");
+    const village = document.getElementById("id_village");
+
+    if (toggleBtn && locationSection && changeLocation) {
+        toggleBtn.addEventListener("click", function() {
+            const hidden = locationSection.classList.contains("hidden");
+            locationSection.classList.toggle("hidden");
+            locationSection.classList.toggle("block");
+            changeLocation.value = hidden ? "1" : "0";
+        });
+    }
+
+    if (!district || !mandal || !village) return;
+
+    function resetOptions(selectEl, label) {
+        selectEl.innerHTML = `<option value="">Select ${label}</option>`;
+    }
+
+    district.addEventListener("change", function() {
+        const districtId = this.value;
+        resetOptions(mandal, "Mandal");
+        resetOptions(village, "Village");
+        if (!districtId) return;
+
+        fetch(`{% url 'locations:ajax_load_mandals' %}?district_id=${districtId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(item => {
+                    mandal.innerHTML += `<option value="${item.id}">${item.name}</option>`;
+                });
+            });
+    });
+
+    mandal.addEventListener("change", function() {
+        const mandalId = this.value;
+        resetOptions(village, "Village");
+        if (!mandalId) return;
+
+        fetch(`{% url 'locations:ajax_load_villages' %}?mandal_id=${mandalId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(item => {
+                    village.innerHTML += `<option value="${item.id}">${item.name}</option>`;
+                });
+            });
+    });
+});
+</script>
+
 {% endblock %}

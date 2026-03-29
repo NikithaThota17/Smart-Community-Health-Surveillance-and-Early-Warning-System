@@ -25,6 +25,19 @@
             {% csrf_token %}
             
             <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="relative group">
+                        <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0F766E] transition-colors"></i>
+                        <input name="first_name" type="text" required placeholder="First Name"
+                            class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-[#0F766E]/50 focus:ring-2 focus:ring-[#0F766E]/10 outline-none font-medium text-slate-900 placeholder-slate-400 transition-all">
+                    </div>
+                    <div class="relative group">
+                        <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0F766E] transition-colors"></i>
+                        <input name="last_name" type="text" required placeholder="Last Name"
+                            class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-[#0F766E]/50 focus:ring-2 focus:ring-[#0F766E]/10 outline-none font-medium text-slate-900 placeholder-slate-400 transition-all">
+                    </div>
+                </div>
+
                 <div class="relative group">
                     <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0F766E] transition-colors"></i>
                     <input name="email" type="email" required placeholder="Valid Email Address"
@@ -115,19 +128,20 @@
         const district = document.getElementById("id_district");
         const mandal = document.getElementById("id_mandal");
         const village = document.getElementById("id_village");
-
         // Helper function to populate dropdowns
         function populate(trigger, target, urlBase, param, dependents) {
             trigger.addEventListener("change", function() {
                 const url = `${urlBase}?${param}=${this.value}`;
                 fetch(url).then(res => res.json()).then(data => {
-                    target.innerHTML = `<option value="">Select ${target.name.charAt(0).toUpperCase() + target.name.slice(1)}</option>`;
+                    const defaultLabel = `Select ${target.name.charAt(0).toUpperCase() + target.name.slice(1)}`;
+                    target.innerHTML = `<option value="">${defaultLabel}</option>`;
                     data.forEach(item => {
                         target.innerHTML += `<option value="${item.id}">${item.label || item.name}</option>`;
                     });
                     // Reset all child dropdowns
                     dependents.forEach(dep => {
-                        dep.innerHTML = `<option value="">Select ${dep.name.charAt(0).toUpperCase() + dep.name.slice(1)}</option>`;
+                        const dependentLabel = `Select ${dep.name.charAt(0).toUpperCase() + dep.name.slice(1)}`;
+                        dep.innerHTML = `<option value="">${dependentLabel}</option>`;
                     });
                 });
             });

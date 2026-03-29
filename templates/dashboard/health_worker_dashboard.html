@@ -46,6 +46,26 @@
         </div>
     </div>
 
+    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mb-10">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Area Risk</p>
+                {% if latest_area_risk %}
+                    <h3 class="text-2xl font-black {% if latest_area_risk.risk_level == 'high' %}text-red-600{% elif latest_area_risk.risk_level == 'medium' %}text-amber-600{% else %}text-green-600{% endif %}">
+                        {{ latest_area_risk.get_risk_level_display }}
+                    </h3>
+                    <p class="text-sm text-slate-600 mt-1">
+                        Probability: {{ latest_area_risk.probability_score|floatformat:2 }} |
+                        Updated: {{ latest_area_risk.calculated_at|date:"M d, Y H:i" }}
+                    </p>
+                {% else %}
+                    <h3 class="text-2xl font-black text-slate-700">No Risk Data Yet</h3>
+                    <p class="text-sm text-slate-500 mt-1">Submit reports to generate risk monitoring for this area.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-10">
         <div class="xl:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
             <div class="p-8 border-b border-slate-50 flex items-center justify-between">
@@ -66,7 +86,7 @@
                     {% for report in citizen_alerts %}
                     <tr class="hover:bg-slate-50/50 transition-colors">
                         <td class="p-6">
-                            <p class="font-bold text-slate-700 text-sm">{{ report.user.email }}</p>
+                            <p class="font-bold text-slate-700 text-sm">{{ report.user.get_full_name|default:report.user.email }}</p>
                             <p class="text-[10px] text-slate-400 uppercase">{{ report.created_at|date:"M d, Y" }}</p>
                         </td>
                         <td class="p-6">
@@ -110,13 +130,57 @@
         <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             {% for case in assigned_cases %}
             <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50">
-                <p class="text-sm font-bold text-slate-800">{{ case.user.email }}</p>
+                <p class="text-sm font-bold text-slate-800">{{ case.user.get_full_name|default:case.user.email }}</p>
                 <p class="text-xs text-slate-500 mt-1">{{ case.village.name }} | {{ case.get_status_display }}</p>
                 <p class="text-xs text-slate-600 mt-3">{{ case.admin_action|default:"No admin action note yet." }}</p>
             </div>
             {% empty %}
             <p class="text-sm text-slate-400">No complaints are assigned to you yet.</p>
             {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-10">
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-8 border-b border-slate-50">
+                <h3 class="font-bold text-slate-800">Pending Field Visits</h3>
+            </div>
+            <div class="p-8 space-y-4">
+                {% for case in pending_field_visits %}
+                <div class="p-5 rounded-2xl border {% if case.is_overdue %}border-red-200 bg-red-50/60{% else %}border-slate-200 bg-slate-50{% endif %}">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">{{ case.user.get_full_name|default:case.user.email }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ case.village.name }} | {{ case.get_priority_display }} priority</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest {% if case.is_overdue %}bg-red-100 text-red-600{% else %}bg-amber-100 text-amber-700{% endif %}">
+                            {% if case.is_overdue %}Overdue{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-3">Due by: {{ case.field_visit_due_at|date:"M d, Y H:i" }}</p>
+                    <p class="text-xs text-slate-600 mt-2">{{ case.admin_action|default:"No admin action note yet." }}</p>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400">No pending field visits at the moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-8 border-b border-slate-50">
+                <h3 class="font-bold text-slate-800">Workflow Notifications</h3>
+            </div>
+            <div class="p-8 space-y-4">
+                {% for item in workflow_notifications %}
+                <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-[#0F766E]">{{ item.title|default:"Workflow Update" }}</p>
+                    <p class="text-sm text-slate-700 mt-2">{{ item.message }}</p>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-3">{{ item.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+                {% empty %}
+                <p class="text-sm text-slate-400">No workflow notifications yet.</p>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
@@ -140,11 +204,16 @@
                     <td class="p-6">
                         <p class="font-bold text-slate-700 text-sm">{{ report.created_at|date:"M d, Y" }}</p>
                         <p class="text-[9px] text-slate-400 uppercase font-medium">{{ report.created_at|time:"H:i" }}</p>
+                        {% if report.parent_complaint %}
+                        <p class="text-[9px] text-[#0F766E] uppercase font-black mt-2">Linked: {{ report.parent_complaint.user.get_full_name|default:report.parent_complaint.user.email }}</p>
+                        {% endif %}
                     </td>
                     <td class="p-6 font-bold text-slate-800">{{ report.affected_count }}</td>
                     <td class="p-6 uppercase text-[10px] font-bold text-slate-500">{{ report.mosquito_severity }}</td>
                     <td class="p-6">
-                        <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[9px] font-black uppercase tracking-widest">Submitted</span>
+                        <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest {% if report.status == 'verified' or report.status == 'resolved' %}bg-green-50 text-green-600{% elif report.status == 'under_review' %}bg-amber-50 text-amber-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                            {{ report.get_status_display }}
+                        </span>
                     </td>
                 </tr>
                 {% empty %}

@@ -12,12 +12,15 @@
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Complaint Summary</p>
             <div class="space-y-4 text-sm text-slate-700">
-                <p><strong>Reporter:</strong> {{ complaint.user.email }}</p>
+                <p><strong>Reporter:</strong> {{ complaint.user.get_full_name|default:complaint.user.email }}</p>
                 <p><strong>Village:</strong> {{ complaint.village.name }}</p>
                 <p><strong>Source:</strong> {{ complaint.get_report_source_display }}</p>
                 <p><strong>Current Status:</strong> {{ complaint.get_status_display }}</p>
                 <p><strong>Priority:</strong> {{ complaint.get_priority_display }}</p>
                 <p><strong>Submitted:</strong> {{ complaint.created_at|date:"M d, Y H:i" }}</p>
+                <p><strong>Assigned Worker:</strong> {{ complaint.assigned_health_worker.get_full_name|default:complaint.assigned_health_worker.email|default:"Not assigned" }}</p>
+                <p><strong>Field Visit Due:</strong> {{ complaint.field_visit_due_at|date:"M d, Y H:i"|default:"Not scheduled" }}</p>
+                <p><strong>Resolved At:</strong> {{ complaint.resolved_at|date:"M d, Y H:i"|default:"Not resolved yet" }}</p>
                 <p><strong>Description:</strong> {{ complaint.description|default:"No additional description provided." }}</p>
                 {% if complaint.verification_notes %}
                 <p><strong>Verification Notes:</strong> {{ complaint.verification_notes }}</p>

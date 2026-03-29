@@ -1,6 +1,6 @@
 import csv
 from django.contrib import messages
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -9,6 +9,7 @@ from complaints.models import Complaint
 from .logic import run_risk_analysis
 from .models import RiskRecord
 
+@login_required
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def trigger_analysis(request):
     """Manually triggers the ML Risk Engine recalculation[cite: 113]."""
@@ -20,6 +21,7 @@ def trigger_analysis(request):
     
     return redirect('accounts:admin_dashboard')
 
+@login_required
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def export_complaints_csv(request):
     """Generates a CSV export of all collected health and sanitation data[cite: 119, 122]."""
@@ -48,6 +50,7 @@ def export_complaints_csv(request):
         ])
     return response
 
+@login_required
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def export_risk_pdf(request):
     """Renders a print-optimized risk assessment report for PDF saving[cite: 120, 123]."""

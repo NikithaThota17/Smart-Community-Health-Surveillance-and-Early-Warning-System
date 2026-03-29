@@ -1,6 +1,7 @@
 from django import forms
 from .models import Complaint
 
+
 class CitizenComplaintForm(forms.ModelForm):
     class Meta:
         model = Complaint
@@ -26,9 +27,17 @@ class CitizenComplaintForm(forms.ModelForm):
         }
 
 class HealthWorkerReportForm(forms.ModelForm):
+    linked_complaint = forms.ModelChoiceField(
+        queryset=Complaint.objects.none(),
+        required=False,
+        empty_label="Select linked citizen complaint",
+        widget=forms.Select(attrs={'class': 'w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl'})
+    )
+
     class Meta:
         model = Complaint
         fields = [
+            'linked_complaint',
             'affected_count', 'mosquito_severity', 'stagnant_water', 
             'waste_issue', 'water_contamination', 'drainage_issue', 'garbage_dumping',
             'foul_smell', 'unsafe_drinking_water', 'nearby_illness_cases',
@@ -48,6 +57,15 @@ class HealthWorkerReportForm(forms.ModelForm):
                 'placeholder': 'Enter field verification findings and symptoms seen in the community'
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        village = kwargs.pop('village', None)
+        super().__init__(*args, **kwargs)
+        if village is not None:
+            self.fields['linked_complaint'].queryset = Complaint.objects.filter(
+                village=village,
+                report_source='citizen',
+            ).exclude(status='resolved').order_by('-created_at')
 
 
 class AdminActionForm(forms.ModelForm):

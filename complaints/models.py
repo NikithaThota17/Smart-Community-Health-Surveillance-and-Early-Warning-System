@@ -22,6 +22,13 @@ class Complaint(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     village = models.ForeignKey(Village, on_delete=models.CASCADE, null=True, blank=True)
     report_source = models.CharField(max_length=20, choices=REPORT_SOURCE_CHOICES, default='citizen')
+    parent_complaint = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='follow_up_reports',
+    )
     
     # Citizen specific: Symptom Checkboxes [cite: 79-80]
     has_fever = models.BooleanField(default=False)
@@ -66,14 +73,18 @@ class Complaint(models.Model):
     )
     field_visit_required = models.BooleanField(default=False)
     field_visit_completed = models.BooleanField(default=False)
+    assigned_at = models.DateTimeField(null=True, blank=True)
+    field_visit_due_at = models.DateTimeField(null=True, blank=True)
     camp_recommended = models.BooleanField(default=False)
     admin_action = models.TextField(blank=True, null=True)
     escalation_target = models.CharField(max_length=120, blank=True, null=True)
     verification_notes = models.TextField(blank=True, null=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Report by {self.user.email} in {self.village.name} ({self.created_at})"
+        village_name = self.village.name if self.village else "Unknown Village"
+        return f"Report by {self.user.email} in {village_name} ({self.created_at})"
 
     @property
     def symptom_count(self):
@@ -91,3 +102,18 @@ class Complaint(models.Model):
                 self.has_breathing_difficulty,
             ]
         )
+
+    @property
+    def is_pending_field_visit(self):
+        return (
+            self.field_visit_required
+            and not self.field_visit_completed
+            and self.status in {'assigned', 'under_review', 'submitted'}
+        )
+
+    @property
+    def is_overdue(self):
+        if not self.field_visit_due_at or not self.is_pending_field_visit:
+            return False
+        from django.utils import timezone
+        return self.field_visit_due_at < timezone.now()
