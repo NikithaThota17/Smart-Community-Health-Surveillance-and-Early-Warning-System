@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from .forms import CitizenComplaintForm, HealthWorkerReportForm, AdminActionForm
 from .models import Complaint
+from .risk_utils import compute_personal_risk
 from .workflow import (
     apply_health_worker_follow_up,
     create_assignment_notification,
@@ -13,6 +14,7 @@ from .workflow import (
     ensure_complaint_workflow_fields,
 )
 from analytics.logic import run_risk_analysis
+from notifications.models import Notification
 
 User = get_user_model()
 
@@ -91,6 +93,60 @@ def _fallback_health_worker_advice(report):
     return "\n".join(f"- {line}" for line in actions[:4])
 
 
+def _create_admin_workflow_log(
+    admin_user,
+    complaint,
+    previous_status,
+    previous_worker_id,
+    previous_field_visit_required,
+):
+    changes = []
+    if previous_status != complaint.status:
+        changes.append(f"status: {previous_status} -> {complaint.status}")
+    if previous_worker_id != complaint.assigned_health_worker_id:
+        before = f"ID {previous_worker_id}" if previous_worker_id else "none"
+        if complaint.assigned_health_worker:
+            after = (
+                complaint.assigned_health_worker.get_full_name()
+                or complaint.assigned_health_worker.email
+            )
+        else:
+            after = "none"
+        changes.append(f"worker: {before} -> {after}")
+    if previous_field_visit_required != complaint.field_visit_required:
+        before = "required" if previous_field_visit_required else "not required"
+        after = "required" if complaint.field_visit_required else "not required"
+        changes.append(f"field visit: {before} -> {after}")
+    if complaint.field_visit_completed:
+        changes.append("field visit marked completed")
+    if complaint.admin_action:
+        changes.append(f"admin note: {complaint.admin_action[:140]}")
+
+    if not changes:
+        changes.append("no material workflow change")
+
+    actor = admin_user.get_full_name() or admin_user.email
+    citizen = complaint.user.get_full_name() or complaint.user.email
+    if complaint.assigned_health_worker:
+        worker = (
+            complaint.assigned_health_worker.get_full_name()
+            or complaint.assigned_health_worker.email
+        )
+    else:
+        worker = "Not assigned"
+    message = (
+        f"Admin {actor} updated complaint #{complaint.id} for citizen {citizen}. "
+        f"Assigned worker: {worker}. Changes: {'; '.join(changes)}."
+    )
+    Notification.objects.create(
+        category='system',
+        title='Admin Workflow Update',
+        message=message,
+        complaint=complaint,
+        village=complaint.village,
+    )
+
+
 def _generate_gemini_text(prompt, fallback_text):
     if not gemini_api_key:
         return fallback_text
@@ -149,11 +205,31 @@ def citizen_complaint_view(request):
             fallback_text = _fallback_citizen_advice(complaint)
             complaint.ai_suggestion = _generate_gemini_text(prompt, fallback_text)
             complaint.medication_guidance = fallback_text
+            personal_score, personal_level, personal_guidance = compute_personal_risk(complaint)
+            complaint.personal_risk_score = personal_score
+            complaint.personal_risk_level = personal_level
             complaint.save()
+
+            if personal_level in {'high', 'medium'}:
+                Notification.objects.create(
+                    category='system',
+                    title='Personal Health Alert',
+                    message=(
+                        f"Your personal risk is {personal_level.upper()} (score: {personal_score}). "
+                        f"{personal_guidance}"
+                    ),
+                    recipient=request.user,
+                    complaint=complaint,
+                    village=complaint.village,
+                )
+
             run_risk_analysis(village_ids=[complaint.village_id])
             return render(request, 'complaints/complaint_success.html', {
                 'ai_advice': complaint.ai_suggestion,
-                'complaint': complaint
+                'complaint': complaint,
+                'personal_risk_level': personal_level,
+                'personal_risk_score': personal_score,
+                'personal_risk_guidance': personal_guidance,
             })
     else:
         form = CitizenComplaintForm()
@@ -203,6 +279,55 @@ def health_worker_report_view(request):
         form = HealthWorkerReportForm(village=request.user.village)
     
     return render(request, 'complaints/health_worker_report.html', {'form': form})
+
+
+@login_required
+def mark_field_visit_completed_view(request, complaint_id):
+    if request.user.role != 'health_worker':
+        messages.warning(request, "Access restricted to Health Workers.")
+        return redirect('accounts:user_dashboard')
+
+    if request.method != 'POST':
+        return redirect('accounts:health_worker_dashboard')
+
+    complaint = get_object_or_404(
+        Complaint,
+        id=complaint_id,
+        assigned_health_worker=request.user,
+    )
+
+    complaint.field_visit_completed = True
+    complaint.field_visit_required = False
+    if complaint.status in {'submitted', 'assigned', 'under_review'}:
+        complaint.status = 'verified'
+    complaint.verification_notes = (
+        (complaint.verification_notes or '').strip() + '\nField visit completed by health worker.'
+    ).strip()
+    complaint.save(update_fields=['field_visit_completed', 'field_visit_required', 'status', 'verification_notes'])
+
+    admin_users = User.objects.filter(role='admin')
+    if admin_users:
+        note = (
+            f"Health worker {request.user.get_full_name() or request.user.email} marked field visit completed "
+            f"for complaint #{complaint.id} in {complaint.village.name if complaint.village else 'assigned area'}."
+        )
+        Notification.objects.bulk_create([
+            Notification(
+                category='system',
+                title='Field Visit Completed',
+                message=note,
+                recipient=admin_user,
+                complaint=complaint,
+                village=complaint.village,
+            )
+            for admin_user in admin_users
+        ])
+
+    if complaint.village_id:
+        run_risk_analysis(village_ids=[complaint.village_id])
+
+    messages.success(request, "Field visit marked as completed.")
+    return redirect('accounts:health_worker_dashboard')
 
 @login_required
 def my_submissions_view(request):
@@ -265,6 +390,14 @@ def admin_complaint_action_view(request, complaint_id):
                         'Complaint Escalated',
                         f"Complaint #{complaint.id} has been escalated for higher-level action.",
                     )
+
+                _create_admin_workflow_log(
+                    admin_user=request.user,
+                    complaint=complaint,
+                    previous_status=previous_status,
+                    previous_worker_id=previous_worker_id,
+                    previous_field_visit_required=previous_field_visit_required,
+                )
 
                 messages.success(request, "Admin action updated successfully.")
                 return redirect('accounts:admin_dashboard')

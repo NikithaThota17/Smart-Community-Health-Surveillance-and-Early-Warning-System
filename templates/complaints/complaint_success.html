@@ -34,6 +34,23 @@
             {% endif %}
             {% endwith %}
 
+            {% if personal_risk_level %}
+            <div class="bg-slate-50 text-slate-800 p-8 rounded-[2.5rem] text-left mb-10 border border-slate-200">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-triangle-exclamation {% if personal_risk_level == 'high' %}text-red-600{% elif personal_risk_level == 'medium' %}text-amber-600{% else %}text-green-600{% endif %}"></i>
+                    <h3 class="font-bold uppercase tracking-widest text-xs">Personal Risk Assessment</h3>
+                </div>
+                <p class="text-sm font-semibold mb-2">
+                    Level:
+                    <span class="{% if personal_risk_level == 'high' %}text-red-600{% elif personal_risk_level == 'medium' %}text-amber-700{% else %}text-green-700{% endif %}">
+                        {{ personal_risk_level|upper }}
+                    </span>
+                    | Score: {{ personal_risk_score|floatformat:2 }}
+                </p>
+                <p class="text-sm leading-relaxed">{{ personal_risk_guidance }}</p>
+            </div>
+            {% endif %}
+
             <div class="flex flex-col gap-4">
     {% if user.role == 'health_worker' %}
         <a href="{% url 'accounts:health_worker_dashboard' %}" class="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:bg-slate-800 transition-all">

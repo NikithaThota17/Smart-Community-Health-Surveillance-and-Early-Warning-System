@@ -10,16 +10,16 @@
 
     <div class="space-y-6">
         {% for alert in alerts %}
-        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-l-8 {% if alert.risk_record.risk_level == 'high' %}border-l-red-500{% else %}border-l-amber-500{% endif %} flex items-center justify-between">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-l-8 {% if alert.risk_record and alert.risk_record.risk_level == 'high' %}border-l-red-500{% else %}border-l-amber-500{% endif %} flex items-center justify-between">
             <div class="flex items-center gap-6">
-                <div class="w-14 h-14 {% if alert.risk_record.risk_level == 'high' %}bg-red-50 text-red-500{% else %}bg-amber-50 text-amber-500{% endif %} rounded-2xl flex items-center justify-center text-2xl">
+                <div class="w-14 h-14 {% if alert.risk_record and alert.risk_record.risk_level == 'high' %}bg-red-50 text-red-500{% else %}bg-amber-50 text-amber-500{% endif %} rounded-2xl flex items-center justify-center text-2xl">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div>
                     <h3 class="font-bold text-slate-800 text-lg">
                         {{ alert.village.name }}
-                        <span class="ml-2 text-[10px] uppercase font-black tracking-widest {% if alert.risk_record.risk_level == 'high' %}text-red-500{% else %}text-amber-500{% endif %}">
-                            {{ alert.risk_record.risk_level }} risk
+                        <span class="ml-2 text-[10px] uppercase font-black tracking-widest {% if alert.risk_record and alert.risk_record.risk_level == 'high' %}text-red-500{% else %}text-amber-500{% endif %}">
+                            {% if alert.risk_record %}{{ alert.risk_record.risk_level }}{% else %}unknown{% endif %} risk
                         </span>
                     </h3>
                     <p class="text-slate-500 text-sm">{{ alert.message }}</p>
@@ -27,13 +27,15 @@
                 </div>
             </div>
             
-            {% if user.role == 'admin' and not alert.is_resolved %}
+            {% if not alert.is_resolved %}
+            {% if user.role == 'admin' or user.is_superuser %}
             <form action="{% url 'notifications:resolve_alert' alert.id %}" method="POST">
                 {% csrf_token %}
                 <button type="submit" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all">
                     Resolve
                 </button>
             </form>
+            {% endif %}
             {% endif %}
         </div>
         {% empty %}

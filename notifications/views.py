@@ -20,12 +20,44 @@ def alert_list_view(request):
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def resolve_alert_view(request, alert_id):
     """Allows admins to mark an alert notification as resolved."""
-    alert = get_object_or_404(Notification, id=alert_id)
-    alert.is_resolved = True
-    alert.resolved_at = timezone.now()
-    alert.save(update_fields=['is_resolved', 'resolved_at'])
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method for resolving alerts.")
+        return redirect('notifications:alert_list')
 
-    messages.success(request, "Alert status updated successfully.")
+    alert = get_object_or_404(Notification, id=alert_id, category='risk_alert')
+    now = timezone.now()
+
+    duplicates_qs = Notification.objects.filter(
+        category='risk_alert',
+        is_resolved=False,
+        village_id=alert.village_id,
+    )
+    if alert.village_id is None:
+        duplicates_qs = Notification.objects.filter(
+            category='risk_alert',
+            is_resolved=False,
+            id=alert.id,
+        )
+    resolved_count = duplicates_qs.update(is_resolved=True, resolved_at=now)
+
+    actor = request.user.get_full_name() or request.user.email
+    village_name = alert.village.name if alert.village else "Unknown village"
+    level = alert.risk_record.risk_level if alert.risk_record else "unknown"
+    Notification.objects.create(
+        category='system',
+        title='Risk Alert Resolved',
+        message=(
+            f"Admin {actor} marked risk alert as resolved for {village_name} "
+            f"(risk level: {level})."
+        ),
+        village=alert.village,
+        risk_record=alert.risk_record,
+    )
+
+    if resolved_count:
+        messages.success(request, f"Resolved {resolved_count} active alert(s) for {village_name}.")
+    else:
+        messages.info(request, "This alert was already resolved.")
     return redirect('notifications:alert_list')
 
 

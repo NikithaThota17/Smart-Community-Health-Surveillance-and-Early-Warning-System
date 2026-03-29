@@ -18,6 +18,7 @@ from locations.models import Country, District, Mandal, Village
 from complaints.models import Complaint
 from analytics.models import RiskRecord
 from notifications.models import Notification
+from complaints.risk_utils import compute_personal_risk
 
 User = get_user_model()
 
@@ -226,27 +227,48 @@ def admin_dashboard(request):
 @login_required
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def admin_risk_history(request):
-    """Full historical risk logs with filters and pagination."""
+    """Admin workflow history: assignments, field visits, and notifications."""
     if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('accounts:user_dashboard')
 
-    risk_level = request.GET.get('risk_level', '')
+    status = request.GET.get('status', '')
+    category = request.GET.get('category', '')
     village_id = request.GET.get('village', '')
 
-    records = RiskRecord.objects.all().select_related('village__mandal__district')
+    action_records = Complaint.objects.filter(
+        Q(assigned_health_worker__isnull=False) |
+        Q(field_visit_required=True) |
+        Q(field_visit_completed=True) |
+        Q(admin_action__isnull=False)
+    ).select_related(
+        'user', 'village__mandal__district', 'assigned_health_worker'
+    ).order_by('-id')
 
-    if risk_level in {'high', 'medium', 'low'}:
-        records = records.filter(risk_level=risk_level)
+    if status in {'submitted', 'under_review', 'assigned', 'verified', 'actioned', 'resolved', 'escalated'}:
+        action_records = action_records.filter(status=status)
     if village_id.isdigit():
-        records = records.filter(village_id=int(village_id))
+        action_records = action_records.filter(village_id=int(village_id))
 
-    paginator = Paginator(records, 20)
-    page_obj = paginator.get_page(request.GET.get('page'))
+    notification_records = Notification.objects.filter(
+        category__in=['assignment', 'resolution', 'escalation', 'system']
+    ).select_related(
+        'recipient', 'complaint', 'village', 'risk_record'
+    ).order_by('-created_at')
+
+    if category in {'assignment', 'resolution', 'escalation', 'system'}:
+        notification_records = notification_records.filter(category=category)
+    if village_id.isdigit():
+        notification_records = notification_records.filter(village_id=int(village_id))
+
+    paginator = Paginator(action_records, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
 
     context = {
         'page_obj': page_obj,
+        'notification_records': notification_records[:80],
         'villages': Village.objects.filter(is_active=True).order_by('name'),
-        'selected_risk_level': risk_level,
+        'selected_status': status,
+        'selected_category': category,
         'selected_village': village_id,
     }
     return render(request, 'dashboard/admin_risk_history.html', context)
@@ -257,6 +279,9 @@ def user_dashboard(request):
 
     risk = None
     latest_submission = None
+    personal_risk_level = None
+    personal_risk_score = None
+    personal_risk_guidance = None
     if user_village:
         risk = RiskRecord.objects.filter(
             village=user_village
@@ -265,6 +290,17 @@ def user_dashboard(request):
             user=request.user,
             report_source='citizen'
         ).order_by('-created_at').first()
+        if latest_submission:
+            score = latest_submission.personal_risk_score
+            level = latest_submission.personal_risk_level
+            guidance = None
+            if score is None or not level:
+                score, level, guidance = compute_personal_risk(latest_submission)
+            else:
+                _, _, guidance = compute_personal_risk(latest_submission)
+            personal_risk_score = score
+            personal_risk_level = level
+            personal_risk_guidance = guidance
 
     return render(
         request,
@@ -272,6 +308,9 @@ def user_dashboard(request):
         {
             'risk': risk,
             'latest_submission': latest_submission,
+            'personal_risk_level': personal_risk_level,
+            'personal_risk_score': personal_risk_score,
+            'personal_risk_guidance': personal_risk_guidance,
         }
     )
 

@@ -1,12 +1,12 @@
 {% extends 'base2.html' %}
-{% block title %}Risk History | HealthGuard{% endblock %}
+{% block title %}Admin Activity Logs | HealthGuard{% endblock %}
 
 {% block dashboard_content %}
 <div class="max-w-7xl mx-auto fade-in-up">
     <div class="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-3xl font-black text-slate-900 tracking-tight">Risk History Logs</h1>
-            <p class="text-slate-500 mt-1">Complete ML risk timeline with filters.</p>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">Admin Activity Logs</h1>
+            <p class="text-slate-500 mt-1">Track assignments, field-visit actions, and notifications sent by the system workflow.</p>
         </div>
         <a href="{% url 'accounts:admin_dashboard' %}" class="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-900 hover:text-white transition-all text-xs font-black uppercase tracking-widest text-slate-700">
             <i class="fa-solid fa-arrow-left mr-2"></i>Back to Dashboard
@@ -15,12 +15,26 @@
 
     <form method="get" class="bg-white border border-slate-100 rounded-3xl p-6 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Risk Level</label>
-            <select name="risk_level" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Case Status</label>
+            <select name="status" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm">
                 <option value="">All</option>
-                <option value="high" {% if selected_risk_level == 'high' %}selected{% endif %}>High</option>
-                <option value="medium" {% if selected_risk_level == 'medium' %}selected{% endif %}>Medium</option>
-                <option value="low" {% if selected_risk_level == 'low' %}selected{% endif %}>Low</option>
+                <option value="submitted" {% if selected_status == 'submitted' %}selected{% endif %}>Submitted</option>
+                <option value="under_review" {% if selected_status == 'under_review' %}selected{% endif %}>Under Review</option>
+                <option value="assigned" {% if selected_status == 'assigned' %}selected{% endif %}>Assigned</option>
+                <option value="verified" {% if selected_status == 'verified' %}selected{% endif %}>Verified</option>
+                <option value="actioned" {% if selected_status == 'actioned' %}selected{% endif %}>Actioned</option>
+                <option value="resolved" {% if selected_status == 'resolved' %}selected{% endif %}>Resolved</option>
+                <option value="escalated" {% if selected_status == 'escalated' %}selected{% endif %}>Escalated</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Notification Type</label>
+            <select name="category" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm">
+                <option value="">All</option>
+                <option value="assignment" {% if selected_category == 'assignment' %}selected{% endif %}>Assignment</option>
+                <option value="system" {% if selected_category == 'system' %}selected{% endif %}>System</option>
+                <option value="resolution" {% if selected_category == 'resolution' %}selected{% endif %}>Resolution</option>
+                <option value="escalation" {% if selected_category == 'escalation' %}selected{% endif %}>Escalation</option>
             </select>
         </div>
         <div>
@@ -44,39 +58,105 @@
         </div>
     </form>
 
-    <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden">
+    <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden mb-8">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-black text-slate-900">Admin Case Actions</h2>
+            <p class="text-xs text-slate-500 uppercase tracking-widest mt-1">Who was assigned, what action was recorded, and field-visit state.</p>
+        </div>
         <table class="w-full text-left">
             <thead class="bg-slate-50">
                 <tr>
                     <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
-                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Village</th>
-                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">District</th>
-                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk</th>
-                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Probability</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Citizen / Village</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Worker</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Field Visit</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Admin Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-                {% for risk in page_obj %}
+                {% for item in page_obj %}
                 <tr class="hover:bg-slate-50/60">
                     <td class="p-5">
-                        <p class="text-sm font-bold text-slate-700">{{ risk.calculated_at|date:"M d, Y" }}</p>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">{{ risk.calculated_at|time:"H:i:s" }} IST</p>
+                        <p class="text-sm font-bold text-slate-700">{{ item.created_at|date:"M d, Y" }}</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">{{ item.created_at|time:"H:i:s" }} IST</p>
                     </td>
-                    <td class="p-5 text-sm font-bold text-slate-800">{{ risk.village.name }}</td>
-                    <td class="p-5 text-xs font-bold text-slate-500 uppercase">{{ risk.village.mandal.district.name }}</td>
+                    <td class="p-5">
+                        <p class="text-sm font-bold text-slate-800">{{ item.user.get_full_name|default:item.user.email }}</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">{{ item.village.name|default:"No village" }}</p>
+                    </td>
+                    <td class="p-5 text-sm font-bold text-slate-700">
+                        {% if item.assigned_health_worker %}
+                            {{ item.assigned_health_worker.get_full_name|default:item.assigned_health_worker.email }}
+                        {% else %}
+                            Not Assigned
+                        {% endif %}
+                    </td>
+                    <td class="p-5 text-xs font-bold text-slate-600 uppercase">
+                        {% if item.field_visit_required and not item.field_visit_completed %}
+                            Pending
+                        {% elif item.field_visit_completed %}
+                            Completed
+                        {% else %}
+                            Not Required
+                        {% endif %}
+                    </td>
                     <td class="p-5">
                         <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
-                            {% if risk.risk_level == 'high' %}bg-red-50 text-red-600
-                            {% elif risk.risk_level == 'medium' %}bg-amber-50 text-amber-600
-                            {% else %}bg-green-50 text-green-600{% endif %}">
-                            {{ risk.risk_level }}
+                            {% if item.status == 'resolved' %}bg-green-50 text-green-700
+                            {% elif item.status == 'escalated' %}bg-red-50 text-red-700
+                            {% elif item.status == 'assigned' %}bg-amber-50 text-amber-700
+                            {% else %}bg-slate-100 text-slate-700{% endif %}">
+                            {{ item.get_status_display }}
                         </span>
                     </td>
-                    <td class="p-5 mono font-bold text-slate-700">{{ risk.probability_score|floatformat:2 }}%</td>
+                    <td class="p-5 text-sm text-slate-600">{{ item.admin_action|default:"No action note" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="p-12 text-center text-slate-400 font-bold">No risk logs found.</td>
+                    <td colspan="6" class="p-12 text-center text-slate-400 font-bold">No admin action logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-black text-slate-900">Notification Dispatch Log</h2>
+            <p class="text-xs text-slate-500 uppercase tracking-widest mt-1">Admin-triggered notifications, recipients, and workflow messages.</p>
+        </div>
+        <table class="w-full text-left">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Recipient</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Case / Village</th>
+                    <th class="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Message</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+                {% for n in notification_records %}
+                <tr class="hover:bg-slate-50/60">
+                    <td class="p-5 text-xs font-bold text-slate-700">{{ n.created_at|date:"M d, Y H:i" }}</td>
+                    <td class="p-5 text-xs font-black uppercase tracking-widest text-[#0F766E]">{{ n.category }}</td>
+                    <td class="p-5 text-sm text-slate-700">
+                        {% if n.recipient %}
+                            {{ n.recipient.get_full_name|default:n.recipient.email }}
+                        {% else %}
+                            Area Broadcast
+                        {% endif %}
+                    </td>
+                    <td class="p-5 text-xs text-slate-600 uppercase">
+                        {% if n.complaint %}Case #{{ n.complaint.id }}{% else %}-{% endif %}
+                        {% if n.village %} | {{ n.village.name }}{% endif %}
+                    </td>
+                    <td class="p-5 text-sm text-slate-600">{{ n.message }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-12 text-center text-slate-400 font-bold">No notification logs found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -86,13 +166,13 @@
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="mt-6 flex items-center justify-center gap-3">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&risk_level={{ selected_risk_level }}&village={{ selected_village }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">Previous</a>
+        <a href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}&category={{ selected_category }}&village={{ selected_village }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">Previous</a>
         {% endif %}
         <span class="text-xs font-black uppercase tracking-widest text-slate-500">
             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
         </span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&risk_level={{ selected_risk_level }}&village={{ selected_village }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">Next</a>
+        <a href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}&category={{ selected_category }}&village={{ selected_village }}" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest">Next</a>
         {% endif %}
     </div>
     {% endif %}

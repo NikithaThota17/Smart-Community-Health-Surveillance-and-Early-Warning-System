@@ -77,6 +77,21 @@
     {% if latest_submission %}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
         <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">My Personal Risk</h3>
+            {% if personal_risk_level %}
+            <div class="inline-flex items-center gap-3 mb-4">
+                <span class="px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest {% if personal_risk_level == 'high' %}bg-red-100 text-red-600{% elif personal_risk_level == 'medium' %}bg-amber-100 text-amber-700{% else %}bg-green-100 text-green-700{% endif %}">
+                    {{ personal_risk_level }} Risk
+                </span>
+                <span class="text-sm font-bold text-slate-700">Score: {{ personal_risk_score|floatformat:2 }}</span>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed">{{ personal_risk_guidance }}</p>
+            {% else %}
+            <p class="text-sm text-slate-500">Submit a report to calculate personal risk.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md">
             <h3 class="text-xl font-bold text-slate-800 mb-4">Last Submitted Factors</h3>
             <div class="flex flex-wrap gap-2 mb-4">
                 {% if latest_submission.has_fever %}<span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest">Fever</span>{% endif %}
@@ -92,7 +107,7 @@
             <p class="text-sm text-slate-500">Status: <strong class="text-slate-800">{{ latest_submission.get_status_display }}</strong> | Priority: <strong class="text-slate-800">{{ latest_submission.get_priority_display }}</strong></p>
         </div>
 
-        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-50 transition-all hover:shadow-md lg:col-span-2">
             <h3 class="text-xl font-bold text-slate-800 mb-4">Medication / Guidance Report</h3>
             <div class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                 {{ latest_submission.medication_guidance|default:latest_submission.ai_suggestion|default:"Submit a complaint to receive guidance." }}

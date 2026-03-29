@@ -62,6 +62,8 @@ class Complaint(models.Model):
     medication_guidance = models.TextField(blank=True, null=True)
     
     description = models.TextField(blank=True, null=True)
+    personal_risk_score = models.FloatField(null=True, blank=True)
+    personal_risk_level = models.CharField(max_length=10, choices=SEVERITY_CHOICES, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted')
     priority = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default='medium')
     assigned_health_worker = models.ForeignKey(
