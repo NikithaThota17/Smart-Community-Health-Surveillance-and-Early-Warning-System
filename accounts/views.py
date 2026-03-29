@@ -171,7 +171,7 @@ def logout_view(request):
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def admin_dashboard(request):
     """Finalized Master Dashboard with Chart.js Data Integration."""
-    if request.user.role != 'admin':
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('accounts:user_dashboard')
 
     # 1. Summary Statistics [cite: 303-308]
@@ -205,9 +205,17 @@ def admin_dashboard(request):
 
     # 4. Critical Node Monitoring Table (latest high-risk villages only)
     context['high_risk_villages'] = latest_risks.filter(risk_level='high').order_by('-probability_score', '-calculated_at')
-    context['recent_citizen_complaints'] = Complaint.objects.filter(report_source='citizen').select_related(
+    recent_new_citizen = Complaint.objects.filter(
+        report_source='citizen',
+        status='submitted',
+    ).select_related(
         'user', 'village__mandal__district', 'assigned_health_worker'
     ).order_by('-created_at')[:8]
+    if not recent_new_citizen:
+        recent_new_citizen = Complaint.objects.filter(report_source='citizen').select_related(
+            'user', 'village__mandal__district', 'assigned_health_worker'
+        ).order_by('-created_at')[:8]
+    context['recent_citizen_complaints'] = recent_new_citizen
     context['recent_health_worker_reports'] = Complaint.objects.filter(report_source='health_worker').select_related(
         'user', 'village__mandal__district', 'parent_complaint__user'
     ).order_by('-created_at')[:6]
@@ -219,7 +227,7 @@ def admin_dashboard(request):
 @user_passes_test(lambda u: u.is_superuser or u.role == 'admin')
 def admin_risk_history(request):
     """Full historical risk logs with filters and pagination."""
-    if request.user.role != 'admin':
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('accounts:user_dashboard')
 
     risk_level = request.GET.get('risk_level', '')

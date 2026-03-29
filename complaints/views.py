@@ -215,7 +215,7 @@ def complaint_success_view(request):
 
 @login_required
 def admin_complaint_action_view(request, complaint_id):
-    if request.user.role != 'admin':
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         messages.warning(request, "Access restricted to administrators.")
         return redirect('accounts:user_dashboard')
 
@@ -232,11 +232,17 @@ def admin_complaint_action_view(request, complaint_id):
         form = AdminActionForm(request.POST, instance=complaint, health_workers=health_workers)
         if form.is_valid():
             complaint = form.save(commit=False)
-            if complaint.status == 'assigned' and not complaint.assigned_health_worker:
-                messages.error(request, "Assign a health worker before marking the complaint as assigned.")
+            missing_worker_for_assignment = complaint.status == 'assigned' and not complaint.assigned_health_worker
+            missing_worker_for_field_visit = complaint.field_visit_required and not complaint.assigned_health_worker
+            if missing_worker_for_assignment or missing_worker_for_field_visit:
+                form.add_error('assigned_health_worker', 'Please assign a health worker for this action.')
+                messages.error(request, "Please assign a health worker before saving this action.")
             else:
                 ensure_complaint_workflow_fields(complaint)
                 complaint.save()
+                if complaint.assigned_health_worker and not complaint.assigned_health_worker.village and complaint.village:
+                    complaint.assigned_health_worker.village = complaint.village
+                    complaint.assigned_health_worker.save(update_fields=['village'])
 
                 if (
                     complaint.assigned_health_worker_id and (
@@ -262,6 +268,8 @@ def admin_complaint_action_view(request, complaint_id):
 
                 messages.success(request, "Admin action updated successfully.")
                 return redirect('accounts:admin_dashboard')
+        else:
+            messages.error(request, "Please correct the highlighted fields and save again.")
     else:
         form = AdminActionForm(instance=complaint, health_workers=health_workers)
 

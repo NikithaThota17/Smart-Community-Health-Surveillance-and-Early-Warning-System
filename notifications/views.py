@@ -27,3 +27,30 @@ def resolve_alert_view(request, alert_id):
 
     messages.success(request, "Alert status updated successfully.")
     return redirect('notifications:alert_list')
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'health_worker')
+def worker_notifications_view(request):
+    notifications = Notification.objects.filter(
+        recipient=request.user,
+    ).select_related('complaint', 'village').order_by('-created_at')
+    return render(
+        request,
+        'notifications/worker_notifications.html',
+        {'notifications': notifications}
+    )
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'citizen')
+def citizen_alert_history_view(request):
+    alerts = Notification.objects.filter(
+        category='risk_alert',
+        village=request.user.village,
+    ).select_related('risk_record', 'village').order_by('-created_at')
+    return render(
+        request,
+        'notifications/citizen_alert_history.html',
+        {'alerts': alerts}
+    )

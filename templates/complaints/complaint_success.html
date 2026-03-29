@@ -20,27 +20,19 @@
             </div>
             {% endif %}
             
+            {% with guidance=ai_advice|default:complaint.medication_guidance %}
+            {% if guidance %}
             <div class="bg-[#0F766E] text-white p-8 rounded-[2.5rem] text-left mb-10 shadow-xl">
                 <div class="flex items-center gap-3 mb-6">
-                    <i class="fa-solid fa-wand-magic-sparkles text-[#22D3EE]"></i>
-                    <h3 class="font-bold uppercase tracking-widest text-xs">Gemini AI Guidance</h3>
+                    <i class="fa-solid fa-notes-medical text-[#22D3EE]"></i>
+                    <h3 class="font-bold uppercase tracking-widest text-xs">Health Guidance</h3>
                 </div>
                 <div class="text-sm leading-loose whitespace-pre-line opacity-90 font-medium">
-                    {{ ai_advice|linebreaks }}
-                </div>
-            </div>
-
-            {% if complaint.medication_guidance %}
-            <div class="bg-amber-50 text-slate-800 p-8 rounded-[2.5rem] text-left mb-10 border border-amber-200">
-                <div class="flex items-center gap-3 mb-4">
-                    <i class="fa-solid fa-notes-medical text-amber-600"></i>
-                    <h3 class="font-bold uppercase tracking-widest text-xs text-amber-700">Citizen Health Guidance</h3>
-                </div>
-                <div class="text-sm leading-loose whitespace-pre-line font-medium">
-                    {{ complaint.medication_guidance|linebreaks }}
+                    {{ guidance|linebreaks }}
                 </div>
             </div>
             {% endif %}
+            {% endwith %}
 
             <div class="flex flex-col gap-4">
     {% if user.role == 'health_worker' %}

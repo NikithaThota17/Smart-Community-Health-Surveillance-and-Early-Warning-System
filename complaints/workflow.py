@@ -56,10 +56,22 @@ def create_assignment_notification(complaint, previous_worker_id=None):
         'No due time set'
     )
     title = 'Field Visit Assigned' if complaint.field_visit_required else 'Complaint Assigned'
+    instructions = []
+    if complaint.field_visit_required:
+        instructions.append("Conduct a field visit and submit verification notes.")
+    if complaint.camp_recommended:
+        instructions.append("Coordinate a local health camp with PHC support.")
+    if complaint.priority == 'high':
+        instructions.append("Prioritize medicine-awareness and referral of severe cases.")
+    if complaint.admin_action:
+        instructions.append(f"Admin note: {complaint.admin_action}")
+
+    instruction_text = " ".join(instructions) if instructions else "Review the complaint and take necessary action."
     message = (
         f"You have been assigned complaint #{complaint.id} for "
         f"{complaint.village.name if complaint.village else 'an unknown village'}. "
-        f"Current status: {complaint.get_status_display()}. Due: {due_text}."
+        f"Current status: {complaint.get_status_display()}. Due: {due_text}. "
+        f"{instruction_text}"
     )
 
     Notification.objects.create(

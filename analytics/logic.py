@@ -8,8 +8,15 @@ from notifications.models import Notification  # Integrated for Section H
 
 def _risk_notification_message(village_name, level):
     if level == 'high':
-        return f"CRITICAL: High health risk detected in {village_name}. Immediate field response is advised."
-    return f"Warning: Medium health risk detected in {village_name}. Monitor the area closely."
+        return (
+            f"CRITICAL: High health risk detected in {village_name}. "
+            "Please consult a doctor/PHC if symptoms persist, maintain hydration, "
+            "and follow official health-worker instructions."
+        )
+    return (
+        f"Warning: Medium health risk detected in {village_name}. "
+        "Monitor symptoms, use safe drinking water, and contact ASHA/PHC if condition worsens."
+    )
 
 
 def _upsert_risk_alert(village, new_record, level):

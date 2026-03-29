@@ -8,9 +8,14 @@
             <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Community <span class="text-[#0F766E]">Surveillance</span></h1>
             <p class="text-slate-500 mt-1">Monitoring status for <b>{{ village_name }}</b> node.</p>
         </div>
-        <a href="{% url 'complaints:health_worker_report' %}" class="btn-teal-glow text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3">
-            <i class="fa-solid fa-file-signature"></i> New Field Report
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'notifications:worker_notifications' %}" class="bg-slate-100 text-slate-700 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+                <i class="fa-solid fa-bell mr-2"></i> Notifications
+            </a>
+            <a href="{% url 'complaints:health_worker_report' %}" class="btn-teal-glow text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                <i class="fa-solid fa-file-signature"></i> New Field Report
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">

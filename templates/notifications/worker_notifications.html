@@ -1,0 +1,38 @@
+{% extends 'base2.html' %}
+{% block title %}Worker Notifications | HealthGuard{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-5xl mx-auto fade-in-up">
+    <div class="mb-10">
+        <h1 class="text-3xl font-bold text-slate-900">Health Worker <span class="text-[#0F766E]">Notifications</span></h1>
+        <p class="text-slate-500">Assignment messages and action instructions from admin workflow.</p>
+    </div>
+
+    <div class="space-y-5">
+        {% for item in notifications %}
+        <div class="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-[#0F766E]">
+                        {{ item.title|default:"Workflow Update" }}
+                    </p>
+                    <p class="text-sm text-slate-700 mt-3 leading-relaxed">{{ item.message }}</p>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-4">
+                        {{ item.created_at|date:"M d, Y H:i" }}
+                    </p>
+                </div>
+                {% if item.complaint %}
+                <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    Case #{{ item.complaint.id }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-white p-16 rounded-[2rem] border border-slate-100 shadow-sm text-center">
+            <p class="text-slate-400">No notifications available yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

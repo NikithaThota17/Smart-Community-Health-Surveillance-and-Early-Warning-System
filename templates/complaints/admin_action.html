@@ -8,17 +8,34 @@
         <p class="text-slate-500 mt-1">Review the complaint, assign field work, and record the administrative response.</p>
     </div>
 
+    {% if messages %}
+    <div class="space-y-3 mb-6">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl text-sm font-semibold {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200{% else %}bg-slate-50 text-slate-700 border border-slate-200{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Complaint Summary</p>
             <div class="space-y-4 text-sm text-slate-700">
                 <p><strong>Reporter:</strong> {{ complaint.user.get_full_name|default:complaint.user.email }}</p>
-                <p><strong>Village:</strong> {{ complaint.village.name }}</p>
+                <p><strong>Village:</strong> {{ complaint.village.name|default:"Not assigned" }}</p>
                 <p><strong>Source:</strong> {{ complaint.get_report_source_display }}</p>
                 <p><strong>Current Status:</strong> {{ complaint.get_status_display }}</p>
                 <p><strong>Priority:</strong> {{ complaint.get_priority_display }}</p>
                 <p><strong>Submitted:</strong> {{ complaint.created_at|date:"M d, Y H:i" }}</p>
-                <p><strong>Assigned Worker:</strong> {{ complaint.assigned_health_worker.get_full_name|default:complaint.assigned_health_worker.email|default:"Not assigned" }}</p>
+                <p>
+                    <strong>Assigned Worker:</strong>
+                    {% if complaint.assigned_health_worker %}
+                        {{ complaint.assigned_health_worker.get_full_name|default:complaint.assigned_health_worker.email }}
+                    {% else %}
+                        Not assigned
+                    {% endif %}
+                </p>
                 <p><strong>Field Visit Due:</strong> {{ complaint.field_visit_due_at|date:"M d, Y H:i"|default:"Not scheduled" }}</p>
                 <p><strong>Resolved At:</strong> {{ complaint.resolved_at|date:"M d, Y H:i"|default:"Not resolved yet" }}</p>
                 <p><strong>Description:</strong> {{ complaint.description|default:"No additional description provided." }}</p>
