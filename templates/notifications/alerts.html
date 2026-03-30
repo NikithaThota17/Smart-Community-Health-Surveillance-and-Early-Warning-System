@@ -23,16 +23,27 @@
                         </span>
                     </h3>
                     <p class="text-slate-500 text-sm">{{ alert.message }}</p>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 block">{{ alert.created_at|timesince }} ago</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 block">
+                        {% if alert.risk_record %}{{ alert.risk_record.calculated_at|timesince }} ago{% else %}{{ alert.created_at|timesince }} ago{% endif %}
+                    </span>
                 </div>
             </div>
             
             {% if not alert.is_resolved %}
             {% if user.role == 'admin' or user.is_superuser %}
-            <form action="{% url 'notifications:resolve_alert' alert.id %}" method="POST">
+            <form action="{% url 'notifications:resolve_alert' alert.id %}" method="POST" class="flex flex-col gap-2 min-w-[250px]">
                 {% csrf_token %}
+                <select name="action_taken" required class="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 bg-white">
+                    <option value="">Select action</option>
+                    <option value="field_visit_assigned">Field visit assigned</option>
+                    <option value="camp_planned">Health camp planned</option>
+                    <option value="medicines_distributed">Medicines distributed</option>
+                    <option value="awareness_sent">Citizen awareness alert sent</option>
+                    <option value="monitor_only">Monitored only</option>
+                </select>
+                <input type="text" name="action_note" maxlength="180" placeholder="Optional note" class="border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 bg-white" />
                 <button type="submit" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all">
-                    Resolve
+                    Mark Addressed
                 </button>
             </form>
             {% endif %}

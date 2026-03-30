@@ -6,6 +6,12 @@ from .models import RiskRecord
 from locations.models import Village
 from notifications.models import Notification  # Integrated for Section H
 
+RISK_RANK = {
+    'low': 1,
+    'medium': 2,
+    'high': 3,
+}
+
 def _risk_notification_message(village_name, level):
     if level == 'high':
         return (
@@ -49,6 +55,22 @@ def _upsert_risk_alert(village, new_record, level):
                 resolved_at=now,
             )
     else:
+        # Cooldown behavior:
+        # If the latest resolved alert for this village was at the same (or higher) risk level,
+        # do not re-open another alert unless the new risk has increased (e.g., medium -> high).
+        latest_resolved = Notification.objects.filter(
+            category='risk_alert',
+            village=village,
+            recipient__isnull=True,
+            complaint__isnull=True,
+            is_resolved=True,
+            risk_record__isnull=False,
+        ).select_related('risk_record').order_by('-resolved_at', '-id').first()
+        if latest_resolved and latest_resolved.risk_record:
+            previous_level = latest_resolved.risk_record.risk_level
+            if RISK_RANK.get(level, 0) <= RISK_RANK.get(previous_level, 0):
+                return
+
         Notification.objects.create(
             category='risk_alert',
             village=village,

@@ -220,6 +220,11 @@ def admin_dashboard(request):
     context['recent_health_worker_reports'] = Complaint.objects.filter(report_source='health_worker').select_related(
         'user', 'village__mandal__district', 'parent_complaint__user'
     ).order_by('-created_at')[:6]
+    context['admin_workflow_notifications'] = Notification.objects.filter(
+        recipient=request.user
+    ).exclude(
+        category='risk_alert'
+    ).select_related('complaint', 'village').order_by('-created_at')[:8]
 
     return render(request, 'dashboard/admin_dashboard.html', context)
 

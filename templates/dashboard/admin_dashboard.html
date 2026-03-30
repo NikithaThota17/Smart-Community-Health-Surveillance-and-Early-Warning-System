@@ -219,7 +219,7 @@
         </table>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div class="glass-card rounded-[3rem] overflow-hidden border-slate-300">
             <div class="p-8 border-b border-slate-300">
                 <h3 class="font-extrabold text-slate-900 text-xl tracking-tight">Incoming Citizen Reports</h3>
@@ -271,6 +271,27 @@
                 </div>
                 {% empty %}
                 <div class="p-8 text-sm text-slate-400">No health worker reports available.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="glass-card rounded-[3rem] overflow-hidden border-slate-300">
+            <div class="p-8 border-b border-slate-300">
+                <h3 class="font-extrabold text-slate-900 text-xl tracking-tight">Recent Workflow Notifications</h3>
+                <p class="text-slate-400 text-xs font-medium mt-1 uppercase tracking-widest">Action evidence like field-visit completion and alert handling</p>
+            </div>
+            <div class="divide-y divide-slate-200">
+                {% for n in admin_workflow_notifications %}
+                <div class="p-8">
+                    <p class="font-bold text-slate-800">{{ n.title|default:"System Update" }}</p>
+                    <p class="text-xs text-slate-500 mt-1">{{ n.created_at|date:"M d, Y H:i" }}{% if n.village %} | {{ n.village.name }}{% endif %}</p>
+                    <p class="text-sm text-slate-600 mt-3">{{ n.message }}</p>
+                    {% if n.complaint %}
+                    <p class="text-xs text-[#0F766E] mt-2 uppercase tracking-widest font-black">Case #{{ n.complaint.id }}</p>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="p-8 text-sm text-slate-400">No workflow notifications yet.</div>
                 {% endfor %}
             </div>
         </div>
