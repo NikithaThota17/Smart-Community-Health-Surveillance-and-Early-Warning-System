@@ -21,8 +21,8 @@
                 <hr class="my-6 border-slate-50">
                 <div class="text-left space-y-3">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Account Status</p>
-                    <div class="flex items-center gap-2 text-xs font-bold {% if user.is_verified %}text-green-500{% else %}text-amber-500{% endif %}">
-                        <i class="fa-solid fa-circle-check"></i> {% if user.is_verified %}VERIFIED{% else %}PENDING{% endif %}
+                    <div class="flex items-center gap-2 text-xs font-bold {% if user.is_verified or user.is_superuser or user.role == 'admin' %}text-green-500{% else %}text-amber-500{% endif %}">
+                        <i class="fa-solid fa-circle-check"></i> {% if user.is_verified or user.is_superuser or user.role == 'admin' %}VERIFIED{% else %}PENDING{% endif %}
                     </div>
                 </div>
             </div>
@@ -59,6 +59,7 @@
                     <p class="text-xs text-red-600">{{ form.email.errors|striptags }}</p>
                     {% endif %}
                 </div>
+                {% if user.role != 'admin' and not user.is_superuser %}
                 <div class="space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Current Location</label>
                     <p class="text-sm font-semibold text-slate-700">
@@ -118,6 +119,7 @@
                         </select>
                     </div>
                 </div>
+                {% endif %}
                 <div class="pt-6 flex items-center justify-between border-t border-slate-50">
                     <a href="{% url 'accounts:password_reset' %}" class="text-xs font-bold text-[#22D3EE] hover:underline uppercase tracking-widest">
                         Change Password?

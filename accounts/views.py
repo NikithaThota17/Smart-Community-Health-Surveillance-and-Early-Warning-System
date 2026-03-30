@@ -359,7 +359,8 @@ def profile_view(request):
             instance=request.user
         )
         village_id = (request.POST.get('village') or '').strip()
-        change_location = (request.POST.get('change_location') == '1') or bool(village_id)
+        is_admin_user = request.user.is_superuser or request.user.role == 'admin'
+        change_location = False if is_admin_user else ((request.POST.get('change_location') == '1') or bool(village_id))
         district_id = (request.POST.get('district') or '').strip()
         mandal_id = (request.POST.get('mandal') or '').strip()
 
